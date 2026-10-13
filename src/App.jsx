@@ -1,8 +1,11 @@
+import { db } from './firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import React, { useState, useEffect } from 'react';
 import { 
   Wallet, TrendingUp, CreditCard, DollarSign, Calendar, 
   Lock, PieChart, Shield, LogOut, Camera, Plus, Trash2, Edit3, CheckCircle, AlertCircle, X, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, Layers, ChevronLeft, ChevronRight, FileText, Bell, Target, Sparkles, Percent, CheckSquare, Square, Download
 } from 'lucide-react';
+
 
 export default function App() {
   // --- CONTROLE DO POP-UP PWA DE INSTALAÇÃO ---
@@ -47,7 +50,32 @@ export default function App() {
       });
     }
   };
+// --- SINCRONIZAÇÃO EM TEMPO REAL COM O FIREBASE ---
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "familia_maia", "dados_financeiros"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.transacoes) setTransacoes(data.transacoes);
+        if (data.parcelas) setParcelas(data.parcelas);
+        if (data.metas) setMetas(data.metas);
+      }
+    });
 
+    return () => unsub();
+  }, []);
+
+  const salvarNoFirebase = async (novasTransacoes, novasParcelas, novasMetas) => {
+    try {
+      await setDoc(doc(db, "familia_maia", "dados_financeiros"), {
+        transacoes: novasTransacoes,
+        parcelas: novasParcelas,
+        metas: novasMetas,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Erro ao salvar no Firebase:", error);
+    }
+  };
   // --- CAPTURA DA DATA EM TEMPO REAL ---
   const [currentDate, setCurrentDate] = useState(new Date());
 
