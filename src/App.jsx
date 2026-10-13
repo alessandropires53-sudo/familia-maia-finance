@@ -1,10 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Wallet, TrendingUp, CreditCard, DollarSign, Calendar, 
-  Lock, PieChart, Shield, LogOut, Camera, Plus, Trash2, Edit3, CheckCircle, AlertCircle, X, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, Layers, ChevronLeft, ChevronRight, FileText, Bell, Target, Sparkles, Percent, CheckSquare, Square
+  Lock, PieChart, Shield, LogOut, Camera, Plus, Trash2, Edit3, CheckCircle, AlertCircle, X, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, Layers, ChevronLeft, ChevronRight, FileText, Bell, Target, Sparkles, Percent, CheckSquare, Square, Download
 } from 'lucide-react';
 
 export default function App() {
+  // --- CONTROLE DO POP-UP PWA DE INSTALAÇÃO ---
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Detecta se é iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    // Captura evento de instalação nativa no Android/Chrome
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // No iOS, se não estiver rodando como app standalone, mostra dica de instalação
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIosDevice && !isStandalone) {
+      setShowInstallBanner(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          setShowInstallBanner(false);
+        }
+        setDeferredPrompt(null);
+      });
+    }
+  };
+
   // --- CAPTURA DA DATA EM TEMPO REAL ---
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -536,6 +579,33 @@ export default function App() {
   // --- APP PRINCIPAL ---
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-neutral-900 to-zinc-950 text-white font-sans pb-32">
+      
+      {/* BANNER INSTALAÇÃO PWA DESTAQUE */}
+      {showInstallBanner && (
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white px-4 py-3 border-b border-emerald-500/50 flex items-center justify-between shadow-xl sticky top-0 z-50 animate-bounce">
+          <div className="flex items-center gap-2.5">
+            <Download className="w-5 h-5 flex-shrink-0" />
+            <div className="text-xs font-bold leading-tight">
+              {isIOS ? (
+                <span>Instale o App: toque em <strong>Compartilhar</strong> e selecione <strong>Adicionar à Tela de Início</strong></span>
+              ) : (
+                <span>Instale o Família Maia Finance na sua Tela Inicial!</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isIOS && deferredPrompt && (
+              <button onClick={handleInstallPWA} className="px-3 py-1 bg-white text-zinc-900 font-black rounded-lg text-xs shadow-md">
+                Instalar
+              </button>
+            )}
+            <button onClick={() => setShowInstallBanner(false)} className="text-white/80 hover:text-white p-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER SUPERIOR TRANSLÚCIDO COM NAVEGAÇÃO DE MÊS */}
       <header className="bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-800/80 sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
