@@ -75,8 +75,10 @@ export default function App() {
   const currentFullDateStr = getFormattedFullDate(currentDate);
   const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
-  // --- ESTADOS DE AUTENTICAÇÃO COM PERSISTÊNCIA ---
-  const [selectedMember, setSelectedMember] = useState(null);
+  // --- ESTADOS DE AUTENTICAÇÃO COM PERSISTÊNCIA CORRETA ---
+  const [selectedMember, setSelectedMember] = useState(() => {
+    return localStorage.getItem('maia_logged_member') || null;
+  });
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -366,8 +368,12 @@ export default function App() {
     }
     if (selectedMember === 'alessandro' && loginPass === '23510360') {
       setIsAuthenticated(true);
+      localStorage.setItem('maia_auth', 'true');
+      localStorage.setItem('maia_logged_member', 'alessandro');
     } else if (selectedMember === 'giovanna' && loginPass === 'Gio2351') {
       setIsAuthenticated(true);
+      localStorage.setItem('maia_auth', 'true');
+      localStorage.setItem('maia_logged_member', 'giovanna');
     } else {
       setLoginError('Senha incorreta!');
     }
@@ -379,6 +385,7 @@ export default function App() {
     setLoginPass('');
     setLoginError('');
     localStorage.removeItem('maia_auth');
+    localStorage.removeItem('maia_logged_member');
   };
 
   const handlePhotoUpload = (e, userKey) => {
