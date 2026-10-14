@@ -3,15 +3,15 @@ import {
   Wallet, Calendar, CreditCard, Shield, PieChart, Lock, Eye, EyeOff, 
   Plus, Trash2, CheckSquare, Square, LogOut, ArrowUpRight, 
   Edit3, X, ChevronLeft, ChevronRight, PlusCircle, MinusCircle,
-  Printer, Target, Percent
+  Printer, Target, Percent, Delete
 } from 'lucide-react';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export default function App() {
-  // --- AUTENTICAÇÃO ---
+  // --- AUTENTICAÇÃO PRINCIPAL (TECLADO TÁTIL 8 DÍGITOS) ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [inputSenha, setInputSenha] = useState('');
+  const [senhaDigitada, setSenhaDigitada] = useState('');
   const [erroLogin, setErroLogin] = useState('');
 
   // --- NAVEGAÇÃO DE MESES ---
@@ -123,15 +123,29 @@ export default function App() {
     setDataAtual(novaData);
   };
 
-  // --- LOGIN ---
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (inputSenha === '23510360') {
-      setIsAuthenticated(true);
+  // --- LOGIN COM TECLADO TÁTIL DE 8 DÍGITOS ---
+  const handleDigitarNumero = (num) => {
+    if (senhaDigitada.length < 8) {
+      const novaSenha = senhaDigitada + num;
+      setSenhaDigitada(novaSenha);
       setErroLogin('');
-    } else {
-      setErroLogin('Senha incorreta!');
+
+      if (novaSenha.length === 8) {
+        if (novaSenha === '23510360') {
+          setIsAuthenticated(true);
+          setSenhaDigitada('');
+          setErroLogin('');
+        } else {
+          setErroLogin('Senha incorreta, tente novamente.');
+          setTimeout(() => setSenhaDigitada(''), 600);
+        }
+      }
     }
+  };
+
+  const handleApagarNumero = () => {
+    setSenhaDigitada(prev => prev.slice(0, -1));
+    setErroLogin('');
   };
 
   const handleAcessarCaixinha = (e) => {
@@ -147,7 +161,7 @@ export default function App() {
   // --- FILTRO INTELIGENTE DE PARCELAS POR MÊS SELECIONADO ---
   const obterParcelasDoMes = () => {
     const anoAtual = dataAtual.getFullYear();
-    const mesAtualIndex = dataAtual.getMonth(); // 0 a 11
+    const mesAtualIndex = dataAtual.getMonth();
 
     return parcelas.map(p => {
       if (!p.mesInicio) return p;
@@ -155,7 +169,7 @@ export default function App() {
       const diffMeses = (anoAtual - anoStart) * 12 + (mesAtualIndex - (mesStart - 1));
 
       if (diffMeses < 0 || diffMeses >= p.totalparcelas) {
-        return null; // Fora do intervalo desta compra
+        return null;
       }
 
       const numParcelaNoMes = p.parcelaatual + diffMeses;
@@ -292,47 +306,78 @@ export default function App() {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  // --- TELA DE LOGIN ---
+  // --- TELA DE LOGIN ULTRA PREMIUM COM TECLADO NUMÉRICO ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#121316] text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-[#1e2025] border border-gray-800 rounded-2xl p-8 shadow-2xl text-center">
-          <div className="w-16 h-16 bg-[#282a30] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-700/60 shadow-inner">
-            <Wallet className="w-8 h-8 text-gray-200" />
+        <div className="w-full max-w-sm bg-[#1a1c23] border border-gray-800/80 rounded-3xl p-6 shadow-2xl text-center relative overflow-hidden backdrop-blur-md">
+          {/* Brilho sutil de fundo */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-gray-700/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="w-14 h-14 bg-[#232630] rounded-2xl flex items-center justify-center mx-auto mb-3 border border-gray-700/50 shadow-inner">
+            <Wallet className="w-7 h-7 text-gray-200" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight mb-1">Família Maia Finance</h1>
-          <p className="text-gray-400 font-medium text-xs mb-6">Gestão Financeira do Casal</p>
+          <h1 className="text-xl font-bold tracking-tight mb-0.5">Família Maia Finance</h1>
+          <p className="text-gray-400 text-[11px] mb-5">Gestão Financeira Privada do Casal</p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex items-center justify-between text-left">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md">
-                  AG
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm">Alessandro e Giovanna</h3>
-                  <p className="text-[11px] text-gray-400">Perfil Único Privado</p>
-                </div>
-              </div>
+          <div className="bg-[#121316] border border-gray-800/80 rounded-2xl p-3.5 mb-5 flex items-center space-x-3 text-left">
+            <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white shadow">
+              AG
             </div>
-
-            <div className="text-left">
-              <label className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1 block">Senha Privada</label>
-              <input 
-                type="password" 
-                placeholder="Digite a senha..."
-                value={inputSenha}
-                onChange={(e) => setInputSenha(e.target.value)}
-                className="w-full bg-[#121316] border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-gray-500 text-sm"
-              />
-              {erroLogin && <p className="text-rose-400 text-xs mt-1">{erroLogin}</p>}
+            <div>
+              <h3 className="font-bold text-xs text-white">Alessandro e Giovanna</h3>
+              <p className="text-[10px] text-gray-400">Perfil Unificado</p>
             </div>
+          </div>
 
-            <button type="submit" className="w-full bg-gray-200 hover:bg-white text-black font-bold py-3 rounded-xl transition duration-200 text-sm shadow">
-              Entrar no App
+          {/* INDICADORES DE SENHA (8 DÍGITOS) */}
+          <div className="mb-4">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Digite a Senha Privada</span>
+            <div className="flex justify-center space-x-2">
+              {[...Array(8)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`w-3.5 h-3.5 rounded-full border transition-all duration-200 ${
+                    i < senhaDigitada.length 
+                      ? 'bg-emerald-400 border-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' 
+                      : 'bg-[#121316] border-gray-700'
+                  }`}
+                ></div>
+              ))}
+            </div>
+            {erroLogin && <p className="text-rose-400 text-xs mt-2 font-medium animate-shake">{erroLogin}</p>}
+          </div>
+
+          {/* TECLADO NUMÉRICO TÁTIL */}
+          <div className="grid grid-cols-3 gap-2 px-2 mb-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => handleDigitarNumero(String(num))}
+                className="h-12 bg-[#232630] hover:bg-[#2c303e] active:scale-95 border border-gray-800/60 rounded-2xl text-lg font-bold text-white transition shadow-sm flex items-center justify-center"
+              >
+                {num}
+              </button>
+            ))}
+            <div className="flex items-center justify-center"></div>
+            <button
+              type="button"
+              onClick={() => handleDigitarNumero('0')}
+              className="h-12 bg-[#232630] hover:bg-[#2c303e] active:scale-95 border border-gray-800/60 rounded-2xl text-lg font-bold text-white transition shadow-sm flex items-center justify-center"
+            >
+              0
             </button>
-          </form>
-          <p className="text-[10px] text-gray-600 mt-6">Sistema Privado Família Maia</p>
+            <button
+              type="button"
+              onClick={handleApagarNumero}
+              className="h-12 bg-[#232630]/60 hover:bg-rose-500/20 active:scale-95 border border-gray-800/60 rounded-2xl flex items-center justify-center text-gray-300 hover:text-rose-400 transition shadow-sm"
+            >
+              <Delete className="w-5 h-5" />
+            </button>
+          </div>
+
+          <p className="text-[10px] text-gray-600 mt-4">Sistema Seguro Família Maia</p>
         </div>
       </div>
     );
@@ -350,7 +395,6 @@ export default function App() {
           </div>
           <div>
             <h1 className="font-bold text-base sm:text-lg leading-tight tracking-tight">Família Maia Finance</h1>
-            {/* SELETOR MÊS < > */}
             <div className="flex items-center space-x-1 mt-0.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
               <button onClick={() => mudarMes(-1)} className="text-gray-400 hover:text-white p-0.5 transition">
@@ -666,7 +710,7 @@ export default function App() {
             ) : (
               <div className="space-y-6">
                 <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6 shadow-xl">
-                  {/* HEADER DO COFRE COM BOTÃO VERDE NEON */}
+                  {/* HEADER DO COFRE COM BOTÃO NOVA CAIXINHA + CADEADINHO DE BLOQUEIO */}
                   <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                     <div>
                       <div className="flex items-center space-x-2">
@@ -679,14 +723,24 @@ export default function App() {
                       <p className="text-xs text-gray-400 mt-1">Gestão de patrimônio, CDI e proteções contra inflação</p>
                     </div>
 
-                    {/* BOTÃO + NOVA CAIXINHA FUNCIONAL */}
-                    <button 
-                      onClick={() => setModalCaixinhaAberta(true)}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-500/20 transition"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Nova Caixinha</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => setModalCaixinhaAberta(true)}
+                        className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-500/20 transition"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Nova Caixinha</span>
+                      </button>
+
+                      {/* CADEADINHO PARA BLOQUEAR NOVAMENTE */}
+                      <button 
+                        onClick={() => { setCaixinhaDesbloqueada(false); setPinCaixinha(''); }}
+                        title="Bloquear Cofre"
+                        className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 rounded-xl transition"
+                      >
+                        <Lock className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* CARDS RESUMO SUPERIOR */}
@@ -809,11 +863,10 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ABA 5: RELATÓRIO DE SAÚDE FINANCEIRA + ESTRUTURA PARA IMPRESSÃO DE PDF FORMAL --- */}
+        {/* --- ABA 5: RELATÓRIO DE SAÚDE FINANCEIRA + PDF FORMAL --- */}
         {abaAtiva === 'relatorio' && (
           <div className="space-y-6">
             
-            {/* PAINEL TELA */}
             <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden">
               <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                 <div>
@@ -856,7 +909,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* DOCUMENTO IMPRESSO/PDF FORMAL (APARECE APENAS NA IMPRESSÃO/PDF) */}
+            {/* DOCUMENTO IMPRESSO/PDF FORMAL */}
             <div className="hidden print:block text-black p-8 max-w-2xl mx-auto space-y-6">
               <div className="border-b-2 border-black pb-4 flex justify-between items-center">
                 <div>
