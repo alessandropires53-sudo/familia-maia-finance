@@ -38,6 +38,8 @@ export default function App() {
   const [modalRendaAberta, setModalRendaAberta] = useState(false);
   const [modalCaixinhaAberta, setModalCaixinhaAberta] = useState(false);
   const [modalEditarRenda, setModalEditarRenda] = useState(null);
+  const [modalEditarParcela, setModalEditarParcela] = useState(null);
+  const [modalEditarFixa, setModalEditarFixa] = useState(null);
   const [modalOperacaoCaixinha, setModalOperacaoCaixinha] = useState(null);
   const [valorOperacaoCaixinha, setValorOperacaoCaixinha] = useState('');
 
@@ -51,7 +53,6 @@ export default function App() {
     { id: 6, categoria: 'extra', titulo: 'Entrega Motoboy', descricao: 'Extra / Variável', valor: 350 },
   ]);
 
-  // pagamentos: array de meses pagos no formato 'YYYY-MM'
   const [fixas, setFixas] = useState([
     { id: 1, titulo: 'Internet Fibra (Sua parte)', tag: 'Serviços', valor: 75, pagamentos: [], vencimento: '10' },
     { id: 2, titulo: 'Plano Celular Casal', tag: 'Comunicação', valor: 100, pagamentos: [], vencimento: '15' },
@@ -82,6 +83,22 @@ export default function App() {
   const [novaRenda, setNovaRenda] = useState({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
   const [novaCaixinha, setNovaCaixinha] = useState({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#a855f7', emoji: '🎯' });
 
+  // --- PERSISTÊNCIA ROBUSTA NO FIREBASE ---
+  const persistirDados = async (novosRendas, novosFixas, novosParcelas, novosCaixinhas) => {
+    const dadosParaSalvar = {
+      rendas: novosRendas !== undefined ? novosRendas : rendas,
+      fixas: novosFixas !== undefined ? novosFixas : fixas,
+      parcelas: novosParcelas !== undefined ? novosParcelas : parcelas,
+      caixinhas: novosCaixinhas !== undefined ? novosCaixinhas : caixinhas,
+      updatedAt: new Date().toISOString()
+    };
+    try {
+      await setDoc(doc(db, "familia_maia", "dados_financeiros"), dadosParaSalvar);
+    } catch (err) {
+      console.error("Erro ao salvar no Firebase:", err);
+    }
+  };
+
   // --- SINCRONIZAÇÃO EM TEMPO REAL FIREBASE ---
   const isRemoteUpdate = useRef(false);
 
@@ -98,27 +115,6 @@ export default function App() {
     });
     return () => unsub();
   }, []);
-
-  useEffect(() => {
-    if (isRemoteUpdate.current) {
-      isRemoteUpdate.current = false;
-      return;
-    }
-    const salvarNoFirebase = async () => {
-      try {
-        await setDoc(doc(db, "familia_maia", "dados_financeiros"), {
-          rendas,
-          fixas,
-          parcelas,
-          caixinhas,
-          updatedAt: new Date().toISOString()
-        });
-      } catch (err) {
-        console.error("Erro ao sincronizar com Firebase:", err);
-      }
-    };
-    salvarNoFirebase();
-  }, [rendas, fixas, parcelas, caixinhas]);
 
   // --- NOTIFICAÇÕES DO CELULAR ---
   useEffect(() => {
@@ -229,7 +225,6 @@ export default function App() {
     const mesAtualVisual = dataAtual.getMonth();
     const anoAtualVisual = dataAtual.getFullYear();
 
-    // Se estiver no mês do calendário real
     if (hoje.getMonth() === mesAtualVisual && hoje.getFullYear() === anoAtualVisual) {
       const diaHoje = hoje.getDate();
       const diffDias = diaVenc - diaHoje;
@@ -293,9 +288,9 @@ export default function App() {
   const totalAcumuladoCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.acumulado), 0);
   const metaGlobalCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.meta), 0);
 
-  // --- HANDLERS TOGGLE DE PAGAMENTO ISOLADO POR MÊS ---
+  // --- HANDLERS COM PERSISTÊNCIA IMEDIATA ---
   const toggleFixaPago = (id) => {
-    setFixas(fixas.map(f => {
+    const novasFixas = fixas.map(f => {
       if (f.id === id) {
         const pagamentosAtuais = Array.isArray(f.pagamentos) ? f.pagamentos : [];
         const jaPago = pagamentosAtuais.includes(mesChaveAtual);
@@ -305,11 +300,13 @@ export default function App() {
         return { ...f, pagamentos: novosPagamentos };
       }
       return f;
-    }));
+    });
+    setFixas(novasFixas);
+    persistirDados(undefined, novasFixas, undefined, undefined);
   };
 
   const toggleParcelaPago = (id) => {
-    setParcelas(parcelas.map(p => {
+    const novasParcelas = parcelas.map(p => {
       if (p.id === id) {
         const pagamentosAtuais = Array.isArray(p.pagamentos) ? p.pagamentos : [];
         const jaPago = pagamentosAtuais.includes(mesChaveAtual);
@@ -319,12 +316,28 @@ export default function App() {
         return { ...p, pagamentos: novosPagamentos };
       }
       return p;
-    }));
+    });
+    setParcelas(novasParcelas);
+    persistirDados(undefined, undefined, novasParcelas, undefined);
   };
 
-  const deletarFixa = (id) => setFixas(fixas.filter(f => f.id !== id));
-  const deletarParcela = (id) => setParcelas(parcelas.filter(p => p.id !== id));
-  const deletarRenda = (id) => setRendas(rendas.filter(r => r.id !== id));
+  const deletarFixa = (id) => {
+    const novasFixas = fixas.filter(f => f.id !== id);
+    setFixas(novasFixas);
+    persistirDados(undefined, novasFixas, undefined, undefined);
+  };
+
+  const deletarParcela = (id) => {
+    const novasParcelas = parcelas.filter(p => p.id !== id);
+    setParcelas(novasParcelas);
+    persistirDados(undefined, undefined, novasParcelas, undefined);
+  };
+
+  const deletarRenda = (id) => {
+    const novasRendas = rendas.filter(r => r.id !== id);
+    setRendas(novasRendas);
+    persistirDados(novasRendas, undefined, undefined, undefined);
+  };
 
   const adicionarRenda = (e) => {
     e.preventDefault();
@@ -336,9 +349,11 @@ export default function App() {
       valor: Number(novaRenda.valor),
       categoria: novaRenda.categoria
     };
-    setRendas([...rendas, item]);
+    const novasRendas = [...rendas, item];
+    setRendas(novasRendas);
     setModalRendaAberta(false);
     setNovaRenda({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
+    persistirDados(novasRendas, undefined, undefined, undefined);
   };
 
   const criarNovaCaixinha = (e) => {
@@ -353,16 +368,46 @@ export default function App() {
       cor: novaCaixinha.cor,
       emoji: novaCaixinha.emoji
     };
-    setCaixinhas([...caixinhas, item]);
+    const novasCaixinhas = [...caixinhas, item];
+    setCaixinhas(novasCaixinhas);
     setModalCaixinhaAberta(false);
     setNovaCaixinha({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#a855f7', emoji: '🎯' });
+    persistirDados(undefined, undefined, undefined, novasCaixinhas);
   };
 
   const salvarEdicaoRenda = (e) => {
     e.preventDefault();
     if (!modalEditarRenda) return;
-    setRendas(rendas.map(r => r.id === modalEditarRenda.id ? { ...modalEditarRenda, valor: Number(modalEditarRenda.valor) } : r));
+    const novasRendas = rendas.map(r => r.id === modalEditarRenda.id ? { ...modalEditarRenda, valor: Number(modalEditarRenda.valor) } : r);
+    setRendas(novasRendas);
     setModalEditarRenda(null);
+    persistirDados(novasRendas, undefined, undefined, undefined);
+  };
+
+  const salvarEdicaoParcela = (e) => {
+    e.preventDefault();
+    if (!modalEditarParcela) return;
+    const novasParcelas = parcelas.map(p => p.id === modalEditarParcela.id ? {
+      ...modalEditarParcela,
+      valor: Number(modalEditarParcela.valor),
+      parcelaatual: Number(modalEditarParcela.parcelaatual),
+      totalparcelas: Number(modalEditarParcela.totalparcelas)
+    } : p);
+    setParcelas(novasParcelas);
+    setModalEditarParcela(null);
+    persistirDados(undefined, undefined, novasParcelas, undefined);
+  };
+
+  const salvarEdicaoFixa = (e) => {
+    e.preventDefault();
+    if (!modalEditarFixa) return;
+    const novasFixas = fixas.map(f => f.id === modalEditarFixa.id ? {
+      ...modalEditarFixa,
+      valor: Number(modalEditarFixa.valor)
+    } : f);
+    setFixas(novasFixas);
+    setModalEditarFixa(null);
+    persistirDados(undefined, novasFixas, undefined, undefined);
   };
 
   const adicionarParcela = (e) => {
@@ -379,9 +424,11 @@ export default function App() {
       mesInicio: novaParcela.mesInicio,
       pagamentos: []
     };
-    setParcelas([...parcelas, item]);
+    const novasParcelas = [...parcelas, item];
+    setParcelas(novasParcelas);
     setModalParcelaAberta(false);
     setNovaParcela({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral', mesInicio: mesFormatadoIso });
+    persistirDados(undefined, undefined, novasParcelas, undefined);
   };
 
   const adicionarFixa = (e) => {
@@ -395,24 +442,28 @@ export default function App() {
       tag: novaFixa.tag,
       pagamentos: []
     };
-    setFixas([...fixas, item]);
+    const novasFixas = [...fixas, item];
+    setFixas(novasFixas);
     setModalFixaAberta(false);
     setNovaFixa({ titulo: '', valor: '', vencimento: '10', tag: 'Serviços' });
+    persistirDados(undefined, novasFixas, undefined, undefined);
   };
 
   const executarOperacaoCaixinha = (e) => {
     e.preventDefault();
     if (!modalOperacaoCaixinha || !valorOperacaoCaixinha) return;
     const val = Number(valorOperacaoCaixinha);
-    setCaixinhas(caixinhas.map(c => {
+    const novasCaixinhas = caixinhas.map(c => {
       if (c.id === modalOperacaoCaixinha.item.id) {
         const novoValor = modalOperacaoCaixinha.tipo === 'guardar' ? c.acumulado + val : Math.max(0, c.acumulado - val);
         return { ...c, acumulado: novoValor };
       }
       return c;
-    }));
+    });
+    setCaixinhas(novasCaixinhas);
     setModalOperacaoCaixinha(null);
     setValorOperacaoCaixinha('');
+    persistirDados(undefined, undefined, undefined, novasCaixinhas);
   };
 
   const GERAR_PDF_FORMAL = () => {
@@ -448,7 +499,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* INDICADORES DE SENHA (6 DÍGITOS ESTILO IPHONE ROXO NEON) */}
           <div className="mb-6">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">Digite o PIN (6 dígitos)</span>
             <div className="flex justify-center space-x-3">
@@ -466,7 +516,6 @@ export default function App() {
             {erroLogin && <p className="text-rose-400 text-xs mt-3 font-medium">{erroLogin}</p>}
           </div>
 
-          {/* TECLADO NUMÉRICO CIRCULAR ESTILO IPHONE */}
           <div className="grid grid-cols-3 gap-3 px-1 mb-2 justify-items-center">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
               <button
@@ -741,7 +790,10 @@ export default function App() {
                       <span className={`font-bold text-sm ${item.pagoNoMes ? 'text-gray-500 line-through' : 'text-white'}`}>
                         {formatarMoeda(item.valor)}
                       </span>
-                      <button onClick={() => deletarFixa(item.id)} className="text-gray-600 hover:text-rose-400">
+                      <button onClick={() => setModalEditarFixa(item)} title="Editar Despesa Fixa" className="text-gray-500 hover:text-white p-1">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => deletarFixa(item.id)} title="Excluir" className="text-gray-600 hover:text-rose-400 p-1">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -821,7 +873,10 @@ export default function App() {
                         <span className={`font-bold text-sm ${p.pagoNoMes ? 'text-gray-500 line-through' : 'text-white'}`}>
                           {formatarMoeda(p.valor)}
                         </span>
-                        <button onClick={() => deletarParcela(p.id)} className="text-gray-600 hover:text-rose-400">
+                        <button onClick={() => setModalEditarParcela(p)} title="Editar Parcela" className="text-gray-500 hover:text-white p-1">
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => deletarParcela(p.id)} title="Excluir" className="text-gray-600 hover:text-rose-400 p-1">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1130,6 +1185,151 @@ export default function App() {
 
       </main>
 
+      {/* MODAL EDITAR PARCELA */}
+      {modalEditarParcela && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#171821] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">Editar Parcela</h3>
+              <button onClick={() => setModalEditarParcela(null)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={salvarEdicaoParcela} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Título / Descrição</label>
+                <input 
+                  type="text" 
+                  value={modalEditarParcela.titulo}
+                  onChange={(e) => setModalEditarParcela({ ...modalEditarParcela, titulo: e.target.value })}
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
+                  <input 
+                    type="number" 
+                    value={modalEditarParcela.valor}
+                    onChange={(e) => setModalEditarParcela({ ...modalEditarParcela, valor: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Dia Vencimento</label>
+                  <input 
+                    type="text" 
+                    value={modalEditarParcela.vencimento}
+                    onChange={(e) => setModalEditarParcela({ ...modalEditarParcela, vencimento: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Parcela Atual</label>
+                  <input 
+                    type="number" 
+                    value={modalEditarParcela.parcelaatual}
+                    onChange={(e) => setModalEditarParcela({ ...modalEditarParcela, parcelaatual: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Total Parcelas</label>
+                  <input 
+                    type="number" 
+                    value={modalEditarParcela.totalparcelas}
+                    onChange={(e) => setModalEditarParcela({ ...modalEditarParcela, totalparcelas: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setModalEditarParcela(null)}
+                  className="w-1/2 bg-[#101117] hover:bg-gray-800 text-white py-3 rounded-2xl font-semibold text-xs border border-gray-800"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="w-1/2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-3 rounded-2xl text-xs shadow-lg shadow-purple-500/20"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR FIXA */}
+      {modalEditarFixa && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#171821] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">Editar Despesa Fixa</h3>
+              <button onClick={() => setModalEditarFixa(null)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={salvarEdicaoFixa} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Título da Conta</label>
+                <input 
+                  type="text" 
+                  value={modalEditarFixa.titulo}
+                  onChange={(e) => setModalEditarFixa({ ...modalEditarFixa, titulo: e.target.value })}
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
+                  <input 
+                    type="number" 
+                    value={modalEditarFixa.valor}
+                    onChange={(e) => setModalEditarFixa({ ...modalEditarFixa, valor: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Dia Vencimento</label>
+                  <input 
+                    type="text" 
+                    value={modalEditarFixa.vencimento}
+                    onChange={(e) => setModalEditarFixa({ ...modalEditarFixa, vencimento: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setModalEditarFixa(null)}
+                  className="w-1/2 bg-[#101117] hover:bg-gray-800 text-white py-3 rounded-2xl font-semibold text-xs border border-gray-800"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="w-1/2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-3 rounded-2xl text-xs shadow-lg shadow-purple-500/20"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* MODAL CRIAR NOVA CAIXINHA */}
       {modalCaixinhaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -1148,7 +1348,7 @@ export default function App() {
                   placeholder="Ex: Viagem de Fim de Ano, Trocar de Carro..."
                   value={novaCaixinha.titulo}
                   onChange={(e) => setNovaCaixinha({ ...novaCaixinha, titulo: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
 
@@ -1159,7 +1359,7 @@ export default function App() {
                   placeholder="Ex: CDB 100% CDI, Tesouro Selic..."
                   value={novaCaixinha.sub}
                   onChange={(e) => setNovaCaixinha({ ...novaCaixinha, sub: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
 
@@ -1171,7 +1371,7 @@ export default function App() {
                     placeholder="5000"
                     value={novaCaixinha.meta}
                     onChange={(e) => setNovaCaixinha({ ...novaCaixinha, meta: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
                 <div>
@@ -1180,7 +1380,7 @@ export default function App() {
                     type="text" 
                     value={novaCaixinha.emoji}
                     onChange={(e) => setNovaCaixinha({ ...novaCaixinha, emoji: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-center"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-center text-white"
                   />
                 </div>
               </div>
@@ -1268,7 +1468,7 @@ export default function App() {
                   placeholder="Ex: Alessandro, Giovanna, Extra..."
                   value={novaRenda.titulo}
                   onChange={(e) => setNovaRenda({ ...novaRenda, titulo: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
               <div>
@@ -1278,7 +1478,7 @@ export default function App() {
                   placeholder="Ex: Salário Fixo, Vendas, Motoboy..."
                   value={novaRenda.descricao}
                   onChange={(e) => setNovaRenda({ ...novaRenda, descricao: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1289,7 +1489,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaRenda.valor}
                     onChange={(e) => setNovaRenda({ ...novaRenda, valor: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
                 <div>
@@ -1341,7 +1541,7 @@ export default function App() {
                   type="text" 
                   value={modalEditarRenda.titulo}
                   onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, titulo: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
               <div>
@@ -1350,7 +1550,7 @@ export default function App() {
                   type="number" 
                   value={modalEditarRenda.valor}
                   onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, valor: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
@@ -1386,7 +1586,7 @@ export default function App() {
                   placeholder="Ex: Tênis, Empréstimo..."
                   value={novaParcela.titulo}
                   onChange={(e) => setNovaParcela({ ...novaParcela, titulo: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
 
@@ -1398,7 +1598,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaParcela.valor}
                     onChange={(e) => setNovaParcela({ ...novaParcela, valor: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
                 <div>
@@ -1407,7 +1607,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.vencimento}
                     onChange={(e) => setNovaParcela({ ...novaParcela, vencimento: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
               </div>
@@ -1419,7 +1619,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.parcelaatual}
                     onChange={(e) => setNovaParcela({ ...novaParcela, parcelaatual: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
                 <div>
@@ -1428,7 +1628,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.totalparcelas}
                     onChange={(e) => setNovaParcela({ ...novaParcela, totalparcelas: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
               </div>
@@ -1476,7 +1676,7 @@ export default function App() {
                   placeholder="Ex: Internet, Luz..."
                   value={novaFixa.titulo}
                   onChange={(e) => setNovaFixa({ ...novaFixa, titulo: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1487,7 +1687,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaFixa.valor}
                     onChange={(e) => setNovaFixa({ ...novaFixa, valor: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
                 <div>
@@ -1496,7 +1696,7 @@ export default function App() {
                     type="number" 
                     value={novaFixa.vencimento}
                     onChange={(e) => setNovaFixa({ ...novaFixa, vencimento: e.target.value })}
-                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white"
                   />
                 </div>
               </div>
