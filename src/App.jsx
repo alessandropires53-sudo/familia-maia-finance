@@ -3,7 +3,7 @@ import {
   Wallet, Calendar, CreditCard, Shield, PieChart, Lock, Eye, EyeOff, 
   Plus, Trash2, CheckSquare, Square, LogOut, ArrowUpRight, 
   Edit3, X, ChevronLeft, ChevronRight, PlusCircle, MinusCircle,
-  ShieldCheck, Cake, Heart, Home
+  Printer, Target, Percent, TrendingUp
 } from 'lucide-react';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -61,10 +61,10 @@ export default function App() {
   ]);
 
   const [caixinhas, setCaixinhas] = useState([
-    { id: 1, titulo: 'Reserva de Emergência', sub: 'CDB 100% CDI (Liquidez Diária)', acumulado: 0, meta: 1000, cor: '#10b981', icone: 'shield' },
-    { id: 2, titulo: 'Festa de 1 Aninho', sub: 'Rendimento Fixo Diário', acumulado: 0, meta: 4000, cor: '#ec4899', icone: 'cake' },
-    { id: 3, titulo: 'Casamento & Viagem', sub: 'Tesouro Selic (Pós-fixado)', acumulado: 0, meta: 45000, cor: '#f59e0b', icone: 'heart' },
-    { id: 4, titulo: 'Obra da Casa (Laje e Muro)', sub: 'IPCA+ (Proteção Inflação)', acumulado: 0, meta: 75000, cor: '#3b82f6', icone: 'home' },
+    { id: 1, titulo: 'Reserva de Emergência', sub: 'CDB 100% CDI (Liquidez Diária)', acumulado: 0, meta: 1000, cor: '#10b981', emoji: '🛡️', bgGradient: 'from-emerald-500/20 to-emerald-900/10' },
+    { id: 2, titulo: 'Festa de 1 Aninho', sub: 'Rendimento Fixo Diário', acumulado: 0, meta: 4000, cor: '#ec4899', emoji: '🎂', bgGradient: 'from-pink-500/20 to-pink-900/10' },
+    { id: 3, titulo: 'Casamento & Viagem', sub: 'Tesouro Selic (Pós-fixado)', acumulado: 0, meta: 45000, cor: '#f59e0b', emoji: '💍', bgGradient: 'from-amber-500/20 to-amber-900/10' },
+    { id: 4, titulo: 'Obra da Casa (Laje e Muro)', sub: 'IPCA+ (Proteção Inflação)', acumulado: 0, meta: 75000, cor: '#3b82f6', emoji: '🏗️', bgGradient: 'from-blue-500/20 to-blue-900/10' },
   ]);
 
   // --- FORMULÁRIOS DE NOVOS ITENS ---
@@ -238,6 +238,10 @@ export default function App() {
     setValorOperacaoCaixinha('');
   };
 
+  const GERAR_PDF_FORMAL = () => {
+    window.print();
+  };
+
   const formatarMoeda = (val) => {
     if (ocultarValores) return 'R$ •••••';
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -246,44 +250,44 @@ export default function App() {
   // --- TELA DE LOGIN ---
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#121316] text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-[#1e2025] border border-gray-800 rounded-2xl p-8 shadow-2xl text-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-700">
-            <Wallet className="w-8 h-8 text-white" />
+      <div className="min-h-screen bg-[#101114] text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#181a20] border border-gray-800/80 rounded-2xl p-8 shadow-2xl text-center">
+          <div className="w-16 h-16 bg-gray-800/60 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-700/50 shadow-inner">
+            <Wallet className="w-8 h-8 text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-bold mb-1">Família Maia Finance</h1>
-          <p className="text-gray-400 font-medium text-sm mb-6">Gestão Financeira • Casal</p>
+          <h1 className="text-2xl font-bold tracking-tight mb-1">Família Maia Finance</h1>
+          <p className="text-gray-400 font-medium text-xs mb-6">Gestão Financeira Unificada</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex items-center justify-between text-left">
+            <div className="bg-[#101114] border border-gray-800 rounded-xl p-4 flex items-center justify-between text-left">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-white">
+                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-500/20">
                   AG
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Alessandro e Giovanna</h3>
-                  <p className="text-xs text-gray-400">Perfil Único da Família</p>
+                  <p className="text-[11px] text-gray-400">Perfil Único do Casal</p>
                 </div>
               </div>
             </div>
 
             <div className="text-left">
-              <label className="text-xs font-semibold text-gray-400 tracking-wider uppercase mb-1 block">Senha Privada</label>
+              <label className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1 block">Senha Privada</label>
               <input 
                 type="password" 
                 placeholder="Digite a senha..."
                 value={inputSenha}
                 onChange={(e) => setInputSenha(e.target.value)}
-                className="w-full bg-[#121316] border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-[#101114] border border-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 text-sm"
               />
-              {erroLogin && <p className="text-red-400 text-xs mt-1">{erroLogin}</p>}
+              {erroLogin && <p className="text-rose-400 text-xs mt-1">{erroLogin}</p>}
             </div>
 
-            <button type="submit" className="w-full bg-gray-200 hover:bg-white text-black font-semibold py-3 rounded-xl transition duration-200">
+            <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-xl transition duration-200 shadow-lg shadow-emerald-500/20 text-sm">
               Entrar no App
             </button>
           </form>
-          <p className="text-xs text-gray-600 mt-6">Sistema Privado Família Maia</p>
+          <p className="text-[10px] text-gray-600 mt-6">Sistema Privado Família Maia</p>
         </div>
       </div>
     );
@@ -291,24 +295,24 @@ export default function App() {
 
   // --- TELA PRINCIPAL (DASHBOARD) ---
   return (
-    <div className="min-h-screen bg-[#121316] text-white pb-32 font-sans">
+    <div className="min-h-screen bg-[#101114] text-white pb-32 font-sans">
       
-      {/* HEADER SUPERIOR COM MÊS EM SETINHAS */}
-      <header className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
+      {/* HEADER SUPERIOR */}
+      <header className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between border-b border-gray-800/40 mb-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#1e2025] rounded-xl flex items-center justify-center border border-gray-800">
-            <Wallet className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-[#181a20] rounded-xl flex items-center justify-center border border-gray-800 shadow-inner">
+            <Wallet className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight">Família Maia Finance</h1>
+            <h1 className="font-bold text-base sm:text-lg leading-tight tracking-tight">Família Maia Finance</h1>
             {/* SELETOR MÊS < > */}
             <div className="flex items-center space-x-1 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
-              <button onClick={() => mudarMes(-1)} className="text-gray-400 hover:text-white p-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1 animate-pulse"></span>
+              <button onClick={() => mudarMes(-1)} className="text-gray-400 hover:text-white p-0.5 transition">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="text-xs text-gray-300 font-medium px-1">{mesFormatadoCapitalized}</span>
-              <button onClick={() => mudarMes(1)} className="text-gray-400 hover:text-white p-0.5">
+              <span className="text-xs text-gray-300 font-semibold px-1">{mesFormatadoCapitalized}</span>
+              <button onClick={() => mudarMes(1)} className="text-gray-400 hover:text-white p-0.5 transition">
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -318,17 +322,17 @@ export default function App() {
         <div className="flex items-center space-x-2">
           <button 
             onClick={() => setOcultarValores(!ocultarValores)}
-            className="p-2.5 bg-[#1e2025] border border-gray-800 rounded-xl hover:bg-gray-800 text-gray-300"
+            className="p-2.5 bg-[#181a20] border border-gray-800 rounded-xl hover:bg-gray-800 text-gray-300 transition"
           >
             {ocultarValores ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
-          <div className="hidden sm:flex items-center space-x-2 bg-[#1e2025] border border-gray-800 px-3 py-1.5 rounded-xl">
+          <div className="hidden sm:flex items-center space-x-2 bg-[#181a20] border border-gray-800 px-3 py-1.5 rounded-xl">
             <div className="w-6 h-6 rounded-full bg-emerald-600 text-xs font-bold flex items-center justify-center">AG</div>
             <span className="text-xs font-medium text-gray-200">Alessandro e Giovanna</span>
           </div>
           <button 
             onClick={() => setIsAuthenticated(false)}
-            className="p-2.5 bg-[#1e2025] border border-gray-800 rounded-xl hover:bg-red-500/10 hover:text-red-400 text-gray-400"
+            className="p-2.5 bg-[#181a20] border border-gray-800 rounded-xl hover:bg-red-500/10 hover:text-red-400 text-gray-400 transition"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -342,60 +346,60 @@ export default function App() {
         {abaAtiva === 'renda' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">RENDA TOTAL</p>
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1">RENDA TOTAL</p>
                   <p className="text-2xl font-black text-emerald-400">{formatarMoeda(rendaTotal)}</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
                   <ArrowUpRight className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">DESPESAS + PARCELAS</p>
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1">DESPESAS + PARCELAS</p>
                   <p className="text-2xl font-black text-rose-500">{formatarMoeda(despesasAbertasTotal)}</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20">
                   <CreditCard className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">SALDO PROJETADO</p>
+                  <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1">SALDO PROJETADO</p>
                   <p className="text-2xl font-black text-white">{formatarMoeda(saldoProjetado)}</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-300">
+                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-300 border border-gray-700">
                   <Wallet className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5">
+            <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-5">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-gray-300">Resumo Orçamentário Visual</span>
+                <span className="text-xs font-semibold text-gray-300">Resumo Orçamentário Visual</span>
                 <span className="text-xs font-bold text-gray-400">{pctComprometido}% Comprometido</span>
               </div>
-              <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden flex">
+              <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden flex">
                 <div style={{ width: `${Math.min(pctComprometido, 100)}%` }} className="bg-emerald-500 h-full"></div>
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-2">
+              <div className="flex justify-between text-[11px] text-gray-400 mt-2">
                 <span>Fixas: {formatarMoeda(fixasPagar)}</span>
                 <span>Dívidas: {formatarMoeda(parcelasPagar)}</span>
               </div>
             </div>
 
-            <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-              <div className="flex justify-between items-start">
+            <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 space-y-6">
+              <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                 <div>
-                  <h2 className="text-lg font-bold">Rendas & Entradas da Família</h2>
-                  <p className="text-xs text-gray-400">Gerencie salários, extras e crie novos tópicos de receita</p>
+                  <h2 className="text-base sm:text-lg font-bold text-white leading-none">Rendas & Entradas da Família</h2>
+                  <p className="text-xs text-gray-400 mt-1">Gerencie salários, extras e crie novos tópicos de receita</p>
                 </div>
                 <button 
                   onClick={() => setModalRendaAberta(true)}
-                  className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow"
+                  className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow transition"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Novo Tópico</span>
@@ -405,13 +409,13 @@ export default function App() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">1. RENDA FICHA GARANTIDA</h3>
-                  <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
                     Subtotal: {formatarMoeda(totalRendaGarantida)}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {rendas.filter(r => r.categoria === 'garantida').map(r => (
-                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                    <div key={r.id} className="bg-[#101114] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <p className="text-xs text-gray-400">{r.titulo}</p>
                         <p className="font-bold text-sm text-white">{r.descricao}</p>
@@ -433,13 +437,13 @@ export default function App() {
               <div className="space-y-3 pt-2">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">+ 2. RENDAS EXTRAS / VARIÁVEIS</h3>
-                  <span className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-lg">
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
                     Subtotal: {formatarMoeda(totalRendaExtra)}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {rendas.filter(r => r.categoria === 'extra').map(r => (
-                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                    <div key={r.id} className="bg-[#101114] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <p className="font-bold text-sm text-white">{r.titulo}</p>
                         <p className="text-xs text-gray-500">{r.descricao}</p>
@@ -463,15 +467,15 @@ export default function App() {
 
         {/* --- ABA 2: FIXAS --- */}
         {abaAtiva === 'fixas' && (
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-start">
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
               <div>
-                <h2 className="text-lg font-bold">Despesas Fixas Intocáveis</h2>
-                <p className="text-xs text-gray-400">Contas recorrentes do mês (Marque o check quando pagar)</p>
+                <h2 className="text-base sm:text-lg font-bold text-white leading-none">Despesas Fixas Intocáveis</h2>
+                <p className="text-xs text-gray-400 mt-1">Contas recorrentes do mês (Marque o check quando pagar)</p>
               </div>
               <button 
                 onClick={() => setModalFixaAberta(true)}
-                className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1"
+                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow transition"
               >
                 <Plus className="w-4 h-4" />
                 <span>Adicionar</span>
@@ -482,7 +486,7 @@ export default function App() {
               {fixas.map(item => (
                 <div 
                   key={item.id} 
-                  className={`bg-[#121316] border rounded-xl p-4 flex items-center justify-between transition ${
+                  className={`bg-[#101114] border rounded-xl p-4 flex items-center justify-between transition ${
                     item.pago ? 'border-emerald-500/30 opacity-60' : 'border-gray-800'
                   }`}
                 >
@@ -513,23 +517,23 @@ export default function App() {
             </div>
 
             <div className="border-t border-gray-800 pt-4 flex justify-between items-center">
-              <span className="text-sm font-semibold text-gray-400">Total Fixas A Pagar:</span>
-              <span className="text-xl font-black text-white">{formatarMoeda(fixasPagar)}</span>
+              <span className="text-xs font-semibold text-gray-400">Total Fixas A Pagar:</span>
+              <span className="text-lg font-black text-white">{formatarMoeda(fixasPagar)}</span>
             </div>
           </div>
         )}
 
-        {/* --- ABA 3: DÍVIDAS / PARCELAS (FORMATADO E REPAGINADO) --- */}
+        {/* --- ABA 3: DÍVIDAS / PARCELAS --- */}
         {abaAtiva === 'dividas' && (
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-center border-b border-gray-800 pb-4">
-              <div className="text-center sm:text-left">
-                <h2 className="text-lg font-bold">Parcelas Ativas em {mesFormatadoCapitalized}</h2>
-                <p className="text-xs text-gray-400">Dívidas e parcelamentos vigentes (Marque o check ao quitar)</p>
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white leading-none">Parcelas Ativas em {mesFormatadoCapitalized}</h2>
+                <p className="text-xs text-gray-400 mt-1">Dívidas e parcelamentos vigentes (Marque o check ao quitar)</p>
               </div>
               <button 
                 onClick={() => setModalParcelaAberta(true)}
-                className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow"
+                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow transition"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nova Parcela</span>
@@ -540,7 +544,7 @@ export default function App() {
               {parcelas.map(p => (
                 <div 
                   key={p.id} 
-                  className={`bg-[#121316] border rounded-xl p-4 flex items-center justify-between transition ${
+                  className={`bg-[#101114] border rounded-xl p-4 flex items-center justify-between transition ${
                     p.pago ? 'border-emerald-500/30 opacity-60' : 'border-gray-800'
                   }`}
                 >
@@ -576,19 +580,19 @@ export default function App() {
             </div>
 
             <div className="border-t border-gray-800 pt-4 flex justify-between items-center">
-              <span className="text-sm font-semibold text-gray-400">Total Dívidas Restantes ({mesFormatadoCapitalized}):</span>
-              <span className="text-xl font-black text-rose-400">{formatarMoeda(parcelasPagar)}</span>
+              <span className="text-xs font-semibold text-gray-400">Total Dívidas Restantes ({mesFormatadoCapitalized}):</span>
+              <span className="text-lg font-black text-rose-400">{formatarMoeda(parcelasPagar)}</span>
             </div>
           </div>
         )}
 
-        {/* --- ABA 4: CAIXINHAS (RESTAURADA E VISUALMENTE IDÊNTICA AO ORIGINAL) --- */}
+        {/* --- ABA 4: CAIXINHAS (ULTRA PREMIUM IDÊNTICA AO PRINT) --- */}
         {abaAtiva === 'caixinhas' && (
           <div>
             {!caixinhaDesbloqueada ? (
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-8 max-w-md mx-auto text-center space-y-6">
-                <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto border border-gray-700">
-                  <Lock className="w-8 h-8 text-white" />
+              <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-8 max-w-md mx-auto text-center space-y-6">
+                <div className="w-16 h-16 bg-gray-800/80 rounded-2xl flex items-center justify-center mx-auto border border-gray-700">
+                  <Lock className="w-8 h-8 text-emerald-400" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">Cofre de Investimentos Família Maia</h2>
@@ -602,115 +606,149 @@ export default function App() {
                     placeholder="PIN..."
                     value={pinCaixinha}
                     onChange={(e) => setPinCaixinha(e.target.value)}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest text-white focus:outline-none focus:border-emerald-500"
                   />
-                  {erroPin && <p className="text-red-400 text-xs">{erroPin}</p>}
-                  <button type="submit" className="w-full bg-white hover:bg-gray-200 text-black font-semibold py-3 rounded-xl transition">
+                  {erroPin && <p className="text-rose-400 text-xs">{erroPin}</p>}
+                  <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">
                     Confirmar Acesso Privado
                   </button>
                 </form>
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-                  <div className="flex justify-between items-center">
+                <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 space-y-6 shadow-xl">
+                  {/* HEADER DO COFRE COM BADGE NEON */}
+                  <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <h2 className="text-lg font-bold">Cofre & Investimentos</h2>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
-                          Rendimento Ativo
+                        <h2 className="text-lg font-bold text-white">Cofre & Investimentos</h2>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30 flex items-center space-x-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span>Rendimento Ativo</span>
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400">Gestão de patrimônio, CDI e proteções contra inflação</p>
+                      <p className="text-xs text-gray-400 mt-1">Gestão de patrimônio, CDI e proteções contra inflação</p>
                     </div>
 
-                    {/* BOTÃO VERDE ORIGINAL + NOVA CAIXINHA */}
-                    <button className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow">
+                    {/* BOTÃO VERDE NEON ORIGINAL */}
+                    <button className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-500/20 transition">
                       <Plus className="w-4 h-4" />
                       <span>Nova Caixinha</span>
                     </button>
                   </div>
 
+                  {/* CARDS RESUMO SUPERIOR COM NEONS */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-[#121316] border border-gray-800 rounded-xl p-4">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase">Total Acumulado</p>
-                      <p className="text-xl font-black text-emerald-400 mt-1">{formatarMoeda(totalAcumuladoCaixinhas)}</p>
+                    <div className="bg-[#101114] border border-gray-800/80 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">TOTAL ACUMULADO</p>
+                        <p className="text-xl font-black text-emerald-400 mt-0.5">{formatarMoeda(totalAcumuladoCaixinhas)}</p>
+                      </div>
+                      <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <Shield className="w-5 h-5" />
+                      </div>
                     </div>
-                    <div className="bg-[#121316] border border-gray-800 rounded-xl p-4">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase">Faltante para Meta Global</p>
-                      <p className="text-xl font-black text-amber-400 mt-1">{formatarMoeda(metaGlobalCaixinhas - totalAcumuladoCaixinhas)}</p>
+
+                    <div className="bg-[#101114] border border-gray-800/80 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">FALTANTE PARA META GLOBAL</p>
+                        <p className="text-xl font-black text-amber-400 mt-0.5">{formatarMoeda(metaGlobalCaixinhas - totalAcumuladoCaixinhas)}</p>
+                      </div>
+                      <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <Target className="w-5 h-5" />
+                      </div>
                     </div>
-                    <div className="bg-[#121316] border border-gray-800 rounded-xl p-4">
-                      <p className="text-[10px] font-bold text-gray-500 uppercase">Conclusão Global</p>
-                      <p className="text-xl font-black text-white mt-1">
-                        {metaGlobalCaixinhas > 0 ? ((totalAcumuladoCaixinhas / metaGlobalCaixinhas) * 100).toFixed(0) : 0}%
-                      </p>
+
+                    <div className="bg-[#101114] border border-gray-800/80 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">CONCLUSÃO GLOBAL</p>
+                        <p className="text-xl font-black text-white mt-0.5">
+                          {metaGlobalCaixinhas > 0 ? ((totalAcumuladoCaixinhas / metaGlobalCaixinhas) * 100).toFixed(0) : 0}%
+                        </p>
+                      </div>
+                      <div className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300">
+                        <Percent className="w-5 h-5" />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-gray-400 font-semibold">
-                      <span>Alocação e Progresso das Metas do Cofre</span>
-                      <span>Meta Global: {formatarMoeda(metaGlobalCaixinhas)}</span>
+                  {/* BARRA DE ALOCAÇÃO E PROGRESSO COM LEGENDAS COLORIDAS */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex justify-between items-center text-xs text-gray-300 font-bold tracking-wider uppercase">
+                      <span>ALOCAÇÃO E PROGRESSO DAS METAS DO COFRE</span>
+                      <span className="text-gray-400 text-[11px] font-normal">Meta Global: {formatarMoeda(metaGlobalCaixinhas)}</span>
                     </div>
-                    <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden">
+
+                    <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden p-0.5">
                       <div 
                         style={{ width: `${metaGlobalCaixinhas > 0 ? (totalAcumuladoCaixinhas / metaGlobalCaixinhas) * 100 : 0}%` }} 
-                        className="bg-emerald-500 h-full"
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                       ></div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {caixinhas.map(c => (
+                        <div key={c.id} className="bg-[#101114] border border-gray-800/80 px-3 py-1.5 rounded-lg flex items-center space-x-2 text-[11px] font-medium text-gray-300">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.cor }}></span>
+                          <span>{c.titulo}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                {/* CARDS DAS CAIXINHAS RESTAURADOS */}
+                {/* GRID CARDS DAS CAIXINHAS ULTRA PREMIUM */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {caixinhas.map(c => {
                     const pct = c.meta > 0 ? Math.min(((c.acumulado / c.meta) * 100), 100).toFixed(0) : 0;
                     return (
-                      <div key={c.id} className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: c.cor }}>
-                              {c.icone === 'shield' && <ShieldCheck className="w-5 h-5" />}
-                              {c.icone === 'cake' && <Cake className="w-5 h-5" />}
-                              {c.icone === 'heart' && <Heart className="w-5 h-5" />}
-                              {c.icone === 'home' && <Home className="w-5 h-5" />}
+                      <div key={c.id} className="bg-[#181a20] border border-gray-800/80 rounded-2xl p-5 space-y-4 hover:border-gray-700 transition shadow-lg relative overflow-hidden">
+                        
+                        <div className="flex items-start justify-between relative z-10">
+                          <div className="flex items-center space-x-3.5">
+                            {/* ÍCONE GRANDE COM GRADIENTE VIVO */}
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg border border-white/10" style={{ backgroundColor: c.cor }}>
+                              {c.emoji}
                             </div>
                             <div>
-                              <h3 className="font-bold text-base">{c.titulo}</h3>
+                              <h3 className="font-bold text-base text-white">{c.titulo}</h3>
                               <p className="text-xs text-gray-400">{c.sub}</p>
                             </div>
                           </div>
-                          <span className="text-xs font-bold text-gray-300 bg-gray-800 px-2 py-1 rounded-lg">{pct}%</span>
+                          <span className="text-xs font-bold text-gray-300 bg-gray-800/80 border border-gray-700 px-2.5 py-1 rounded-xl">
+                            {pct}%
+                          </span>
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="space-y-1.5 relative z-10">
                           <div className="flex justify-between text-xs text-gray-400">
-                            <span>Acumulado: <strong className="text-white">{formatarMoeda(c.acumulado)}</strong></span>
-                            <span>Meta: <strong className="text-white">{formatarMoeda(c.meta)}</strong></span>
+                            <span>Acumulado: <strong className="text-white font-bold">{formatarMoeda(c.acumulado)}</strong></span>
+                            <span>Meta: <strong className="text-white font-bold">{formatarMoeda(c.meta)}</strong></span>
                           </div>
+
                           <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                            <div style={{ width: `${pct}%`, backgroundColor: c.cor }} className="h-full"></div>
+                            <div style={{ width: `${pct}%`, backgroundColor: c.cor }} className="h-full rounded-full transition-all duration-500"></div>
                           </div>
-                          <p className="text-[10px] text-gray-500 text-right">
+
+                          <p className="text-[10px] text-gray-400 text-right">
                             Faltam <strong className="text-amber-400">{formatarMoeda(c.meta - c.acumulado)}</strong> para atingir a meta
                           </p>
                         </div>
 
-                        {/* BOTÕES DE GUARDAR E RETIRAR */}
-                        <div className="flex space-x-2 pt-2">
+                        {/* BOTÕES DE AÇÃO PREMIUM */}
+                        <div className="flex space-x-2 pt-1 relative z-10">
                           <button 
                             onClick={() => setModalOperacaoCaixinha({ item: c, tipo: 'guardar' })}
-                            className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 border border-emerald-500/30"
+                            className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1 shadow-md transition"
                           >
-                            <PlusCircle className="w-3.5 h-3.5" />
+                            <PlusCircle className="w-4 h-4" />
                             <span>+ Guardar</span>
                           </button>
                           <button 
                             onClick={() => setModalOperacaoCaixinha({ item: c, tipo: 'retirar' })}
-                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 border border-gray-700"
+                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1 border border-gray-700 transition"
                           >
-                            <MinusCircle className="w-3.5 h-3.5" />
+                            <MinusCircle className="w-4 h-4" />
                             <span>Retirar</span>
                           </button>
                         </div>
@@ -723,34 +761,43 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ABA 5: RELATÓRIO --- */}
+        {/* --- ABA 5: RELATÓRIO COM EMISSÃO DE PDF FORMAL --- */}
         {abaAtiva === 'relatorio' && (
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-            <div>
-              <h2 className="text-lg font-bold">Relatório de Saúde Financeira ({mesFormatadoCapitalized})</h2>
-              <p className="text-xs text-gray-400">Visão consolidada do orçamento e percentual de gasto</p>
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white leading-none">Relatório de Saúde Financeira ({mesFormatadoCapitalized})</h2>
+                <p className="text-xs text-gray-400 mt-1">Visão consolidada do orçamento e percentual de gasto</p>
+              </div>
+              <button 
+                onClick={GERAR_PDF_FORMAL}
+                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow transition"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Gerar PDF Formal</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="flex justify-center">
-                <div className="relative w-48 h-48 rounded-full border-8 border-gray-800 flex items-center justify-center border-t-emerald-500 border-r-emerald-500">
+              <div className="flex justify-center py-4">
+                <div className="relative w-48 h-48 rounded-full border-8 border-gray-800 flex items-center justify-center border-t-emerald-500 border-r-emerald-500 shadow-2xl">
                   <div className="text-center">
-                    <span className="text-3xl font-black">{pctComprometido}%</span>
-                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Comprometido</p>
+                    <span className="text-3xl font-black text-white">{pctComprometido}%</span>
+                    <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-0.5">Comprometido</p>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                <div className="bg-[#101114] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                   <span className="text-xs font-semibold text-gray-300">Renda Bruta Total</span>
                   <span className="font-bold text-emerald-400">{formatarMoeda(rendaTotal)}</span>
                 </div>
-                <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                <div className="bg-[#101114] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                   <span className="text-xs font-semibold text-gray-300">Comprometimento Mensal</span>
                   <span className="font-bold text-rose-500">{formatarMoeda(despesasAbertasTotal)}</span>
                 </div>
-                <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                <div className="bg-[#101114] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                   <span className="text-xs font-semibold text-gray-300">Sobra para Reserva</span>
                   <span className="font-bold text-white">{formatarMoeda(saldoProjetado)}</span>
                 </div>
@@ -764,7 +811,7 @@ export default function App() {
       {/* MODAL OPERAÇÃO CAIXINHA (GUARDAR / RETIRAR) */}
       {modalOperacaoCaixinha && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">
                 {modalOperacaoCaixinha.tipo === 'guardar' ? 'Guardar em' : 'Retirar de'}: {modalOperacaoCaixinha.item.titulo}
@@ -781,7 +828,7 @@ export default function App() {
                   placeholder="0.00"
                   value={valorOperacaoCaixinha}
                   onChange={(e) => setValorOperacaoCaixinha(e.target.value)}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
@@ -794,8 +841,8 @@ export default function App() {
                 </button>
                 <button 
                   type="submit" 
-                  className={`w-1/2 font-semibold text-xs py-3 rounded-xl ${
-                    modalOperacaoCaixinha.tipo === 'guardar' ? 'bg-emerald-500 hover:bg-emerald-600 text-black' : 'bg-rose-500 hover:bg-rose-600 text-white'
+                  className={`w-1/2 font-bold text-xs py-3 rounded-xl ${
+                    modalOperacaoCaixinha.tipo === 'guardar' ? 'bg-emerald-500 hover:bg-emerald-400 text-black' : 'bg-rose-500 hover:bg-rose-400 text-white'
                   }`}
                 >
                   Confirmar
@@ -809,7 +856,7 @@ export default function App() {
       {/* MODAL ADICIONAR RENDA */}
       {modalRendaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">Adicionar Novo Tópico de Renda</h3>
               <button onClick={() => setModalRendaAberta(false)} className="text-gray-400 hover:text-white">
@@ -824,7 +871,7 @@ export default function App() {
                   placeholder="Ex: Alessandro, Giovanna, Extra..."
                   value={novaRenda.titulo}
                   onChange={(e) => setNovaRenda({ ...novaRenda, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
@@ -834,7 +881,7 @@ export default function App() {
                   placeholder="Ex: Salário Fixo, Vendas, Motoboy..."
                   value={novaRenda.descricao}
                   onChange={(e) => setNovaRenda({ ...novaRenda, descricao: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -845,7 +892,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaRenda.valor}
                     onChange={(e) => setNovaRenda({ ...novaRenda, valor: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -853,7 +900,7 @@ export default function App() {
                   <select 
                     value={novaRenda.categoria}
                     onChange={(e) => setNovaRenda({ ...novaRenda, categoria: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
                   >
                     <option value="garantida">1. Ficha Garantida</option>
                     <option value="extra">2. Renda Extra</option>
@@ -883,7 +930,7 @@ export default function App() {
       {/* MODAL EDITAR RENDA */}
       {modalEditarRenda && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">Editar Renda: {modalEditarRenda.titulo}</h3>
               <button onClick={() => setModalEditarRenda(null)} className="text-gray-400 hover:text-white">
@@ -897,7 +944,7 @@ export default function App() {
                   type="text" 
                   value={modalEditarRenda.titulo}
                   onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
@@ -906,7 +953,7 @@ export default function App() {
                   type="number" 
                   value={modalEditarRenda.valor}
                   onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, valor: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
@@ -932,7 +979,7 @@ export default function App() {
       {/* MODAL ADICIONAR PARCELA */}
       {modalParcelaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold">Adicionar Nova Parcela</h3>
             <form onSubmit={adicionarParcela} className="space-y-3">
               <div>
@@ -942,7 +989,7 @@ export default function App() {
                   placeholder="Ex: Tênis, Empréstimo..."
                   value={novaParcela.titulo}
                   onChange={(e) => setNovaParcela({ ...novaParcela, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -954,7 +1001,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaParcela.valor}
                     onChange={(e) => setNovaParcela({ ...novaParcela, valor: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -963,7 +1010,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.vencimento}
                     onChange={(e) => setNovaParcela({ ...novaParcela, vencimento: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -975,7 +1022,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.parcelaatual}
                     onChange={(e) => setNovaParcela({ ...novaParcela, parcelaatual: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -984,7 +1031,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.totalparcelas}
                     onChange={(e) => setNovaParcela({ ...novaParcela, totalparcelas: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -1012,7 +1059,7 @@ export default function App() {
       {/* MODAL ADICIONAR FIXA */}
       {modalFixaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#181a20] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold">Adicionar Despesa Fixa</h3>
             <form onSubmit={adicionarFixa} className="space-y-3">
               <div>
@@ -1022,7 +1069,7 @@ export default function App() {
                   placeholder="Ex: Internet, Luz..."
                   value={novaFixa.titulo}
                   onChange={(e) => setNovaFixa({ ...novaFixa, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
@@ -1032,7 +1079,7 @@ export default function App() {
                   placeholder="0.00"
                   value={novaFixa.valor}
                   onChange={(e) => setNovaFixa({ ...novaFixa, valor: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#101114] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
@@ -1057,11 +1104,11 @@ export default function App() {
 
       {/* BARRA DE NAVEGAÇÃO INFERIOR */}
       <div className="fixed bottom-0 left-0 right-0 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-center pointer-events-none z-40">
-        <nav className="pointer-events-auto bg-[#1e2025]/95 backdrop-blur-md border border-gray-800/80 rounded-2xl p-1.5 flex justify-between items-center w-full max-w-md shadow-2xl">
+        <nav className="pointer-events-auto bg-[#181a20]/95 backdrop-blur-md border border-gray-800/80 rounded-2xl p-1.5 flex justify-between items-center w-full max-w-md shadow-2xl">
           <button 
             onClick={() => setAbaAtiva('renda')}
             className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'renda' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+              abaAtiva === 'renda' ? 'bg-[#262a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Wallet className="w-4 h-4 mb-1" />
@@ -1071,7 +1118,7 @@ export default function App() {
           <button 
             onClick={() => setAbaAtiva('fixas')}
             className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'fixas' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+              abaAtiva === 'fixas' ? 'bg-[#262a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Calendar className="w-4 h-4 mb-1" />
@@ -1081,7 +1128,7 @@ export default function App() {
           <button 
             onClick={() => setAbaAtiva('dividas')}
             className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'dividas' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+              abaAtiva === 'dividas' ? 'bg-[#262a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <CreditCard className="w-4 h-4 mb-1" />
@@ -1091,7 +1138,7 @@ export default function App() {
           <button 
             onClick={() => setAbaAtiva('caixinhas')}
             className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'caixinhas' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+              abaAtiva === 'caixinhas' ? 'bg-[#262a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Shield className="w-4 h-4 mb-1" />
@@ -1101,7 +1148,7 @@ export default function App() {
           <button 
             onClick={() => setAbaAtiva('relatorio')}
             className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'relatorio' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+              abaAtiva === 'relatorio' ? 'bg-[#262a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <PieChart className="w-4 h-4 mb-1" />
