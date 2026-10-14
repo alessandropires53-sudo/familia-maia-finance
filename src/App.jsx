@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wallet, Calendar, CreditCard, Shield, PieChart, Lock, Eye, EyeOff, 
-  Plus, Trash2, CheckSquare, Square, LogOut, FileText, ArrowUpRight, ArrowDownLeft
+  Plus, Trash2, CheckSquare, Square, LogOut, FileText, ArrowUpRight, 
+  Edit3, X
 } from 'lucide-react';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -25,7 +26,8 @@ export default function App() {
   // --- MODAIS ---
   const [modalParcelaAberta, setModalParcelaAberta] = useState(false);
   const [modalFixaAberta, setModalFixaAberta] = useState(false);
-  const [modalCaixinhaAberta, setModalCaixinhaAberta] = useState(false);
+  const [modalRendaAberta, setModalRendaAberta] = useState(false);
+  const [modalEditarRenda, setModalEditarRenda] = useState(null);
 
   // --- ESTADOS DE DADOS FINANCEIROS ---
   const [rendas, setRendas] = useState([
@@ -49,7 +51,7 @@ export default function App() {
     { id: 2, titulo: 'Dívida Primo #1', tag: 'Empréstimo', valor: 121, parcelaatual: 8, totalparcelas: 10, vencimento: '05', mesInicio: '2026-03', pago: false },
     { id: 3, titulo: 'Dívida Primo #2', tag: 'Empréstimo', valor: 211, parcelaatual: 5, totalparcelas: 10, vencimento: '05', mesInicio: '2026-06', pago: false },
     { id: 4, titulo: 'Dívida Primo #3', tag: 'Empréstimo', valor: 107, parcelaatual: 3, totalparcelas: 6, vencimento: '05', mesInicio: '2026-08', pago: false },
-    { id: 5, titulo: 'Cabelo alessandro', tag: 'Geral', valor: 85, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pago: false },
+    { id: 5, titulo: 'Cabelo alessando', tag: 'Geral', valor: 85, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pago: false },
     { id: 6, titulo: 'pneu', tag: 'Geral', valor: 140, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pago: false },
   ]);
 
@@ -63,6 +65,7 @@ export default function App() {
   // --- FORMULÁRIOS DE NOVOS ITENS ---
   const [novaParcela, setNovaParcela] = useState({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral', mesInicio: mesAtual });
   const [novaFixa, setNovaFixa] = useState({ titulo: '', valor: '', tag: 'Serviços' });
+  const [novaRenda, setNovaRenda] = useState({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
 
   // --- SINCRONIZAÇÃO EM TEMPO REAL FIREBASE ---
   const isRemoteUpdate = useRef(false);
@@ -128,7 +131,6 @@ export default function App() {
   const totalRendaExtra = rendas.filter(r => r.categoria === 'extra').reduce((acc, r) => acc + Number(r.valor), 0);
   const rendaTotal = totalRendaGarantida + totalRendaExtra;
 
-  // Filtra itens do mês selecionado
   const fixasPagar = fixas.filter(f => !f.pago).reduce((acc, f) => acc + Number(f.valor), 0);
   const totalFixasBruto = fixas.reduce((acc, f) => acc + Number(f.valor), 0);
 
@@ -144,16 +146,34 @@ export default function App() {
   const metaGlobalCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.meta), 0);
 
   // --- HANDLERS DE ALTERAÇÃO ---
-  const toggleFixaPago = (id) => {
-    setFixas(fixas.map(f => f.id === id ? { ...f, pago: !f.pago } : f));
-  };
-
-  const toggleParcelaPago = (id) => {
-    setParcelas(parcelas.map(p => p.id === id ? { ...p, pago: !p.pago } : p));
-  };
+  const toggleFixaPago = (id) => setFixas(fixas.map(f => f.id === id ? { ...f, pago: !f.pago } : f));
+  const toggleParcelaPago = (id) => setParcelas(parcelas.map(p => p.id === id ? { ...p, pago: !p.pago } : p));
 
   const deletarFixa = (id) => setFixas(fixas.filter(f => f.id !== id));
   const deletarParcela = (id) => setParcelas(parcelas.filter(p => p.id !== id));
+  const deletarRenda = (id) => setRendas(rendas.filter(r => r.id !== id));
+
+  const adicionarRenda = (e) => {
+    e.preventDefault();
+    if (!novaRenda.titulo || !novaRenda.valor) return;
+    const item = {
+      id: Date.now(),
+      titulo: novaRenda.titulo,
+      descricao: novaRenda.descricao || 'Tópico de Renda',
+      valor: Number(novaRenda.valor),
+      categoria: novaRenda.categoria
+    };
+    setRendas([...rendas, item]);
+    setModalRendaAberta(false);
+    setNovaRenda({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
+  };
+
+  const salvarEdicaoRenda = (e) => {
+    e.preventDefault();
+    if (!modalEditarRenda) return;
+    setRendas(rendas.map(r => r.id === modalEditarRenda.id ? { ...modalEditarRenda, valor: Number(modalEditarRenda.valor) } : r));
+    setModalEditarRenda(null);
+  };
 
   const adicionarParcela = (e) => {
     e.preventDefault();
@@ -203,7 +223,7 @@ export default function App() {
             <Wallet className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold mb-1">Família Maia Finance</h1>
-          <p className="text-gray-4 font-medium text-sm text-gray-400 mb-6">Gestão Financeira • Casal</p>
+          <p className="text-gray-400 font-medium text-sm mb-6">Gestão Financeira • Casal</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex items-center justify-between text-left">
@@ -242,7 +262,7 @@ export default function App() {
 
   // --- TELA PRINCIPAL (DASHBOARD) ---
   return (
-    <div className="min-h-screen bg-[#121316] text-white pb-28 font-sans">
+    <div className="min-h-screen bg-[#121316] text-white pb-32 font-sans">
       
       {/* HEADER SUPERIOR */}
       <header className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
@@ -264,14 +284,14 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <button 
             onClick={() => setOcultarValores(!ocultarValores)}
             className="p-2.5 bg-[#1e2025] border border-gray-800 rounded-xl hover:bg-gray-800 text-gray-300"
           >
             {ocultarValores ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
-          <div className="flex items-center space-x-2 bg-[#1e2025] border border-gray-800 px-3 py-1.5 rounded-xl">
+          <div className="hidden sm:flex items-center space-x-2 bg-[#1e2025] border border-gray-800 px-3 py-1.5 rounded-xl">
             <div className="w-6 h-6 rounded-full bg-emerald-600 text-xs font-bold flex items-center justify-center">AG</div>
             <span className="text-xs font-medium text-gray-200">Alessandro e Giovanna</span>
           </div>
@@ -290,11 +310,11 @@ export default function App() {
         {/* --- ABA 1: RENDA --- */}
         {abaAtiva === 'renda' && (
           <div className="space-y-6">
-            {/* CARDS DE RESUMO */}
+            {/* CARDS DE RESUMO EM CASCATA */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Renda Total</p>
+                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">RENDA TOTAL</p>
                   <p className="text-2xl font-black text-emerald-400">{formatarMoeda(rendaTotal)}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
@@ -304,7 +324,7 @@ export default function App() {
 
               <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Despesas + Parcelas</p>
+                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">DESPESAS + PARCELAS</p>
                   <p className="text-2xl font-black text-rose-500">{formatarMoeda(despesasAbertasTotal)}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">
@@ -314,7 +334,7 @@ export default function App() {
 
               <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Saldo Projetado</p>
+                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">SALDO PROJETADO</p>
                   <p className="text-2xl font-black text-white">{formatarMoeda(saldoProjetado)}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-300">
@@ -338,29 +358,55 @@ export default function App() {
               </div>
             </div>
 
-            {/* SEÇÃO RENDAS */}
+            {/* SEÇÃO RENDAS & ENTRADAS */}
             <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-              <div>
-                <h2 className="text-lg font-bold">Rendas & Entradas da Família</h2>
-                <p className="text-xs text-gray-400">Gerencie salários, extras e crie novos tópicos de receita</p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-lg font-bold">Rendas & Entradas da Família</h2>
+                  <p className="text-xs text-gray-400">Gerencie salários, extras e crie novos tópicos de receita</p>
+                </div>
+                {/* BOTÃO + NOVO TÓPICO RESTAURADO */}
+                <button 
+                  onClick={() => setModalRendaAberta(true)}
+                  className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Novo Tópico</span>
+                </button>
               </div>
 
               {/* 1. RENDA FICHA GARANTIDA */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">1. Renda Ficha Garantida</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">1. RENDA FICHA GARANTIDA</h3>
                   <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg">
                     Subtotal: {formatarMoeda(totalRendaGarantida)}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {rendas.filter(r => r.categoria === 'garantida').map(r => (
-                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center group">
                       <div>
                         <p className="text-xs text-gray-400">{r.titulo}</p>
-                        <p className="font-bold text-sm">{r.descricao}</p>
+                        <p className="font-bold text-sm text-white">{r.descricao}</p>
                       </div>
-                      <span className="font-bold text-emerald-400 text-sm">{formatarMoeda(r.valor)}</span>
+                      <div className="flex items-center space-x-3">
+                        <span className="font-bold text-emerald-400 text-sm">{formatarMoeda(r.valor)}</span>
+                        <button 
+                          onClick={() => setModalEditarRenda(r)}
+                          className="text-gray-500 hover:text-white p-1"
+                          title="Editar valor"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => deletarRenda(r.id)}
+                          className="text-gray-600 hover:text-rose-400 p-1"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -369,7 +415,7 @@ export default function App() {
               {/* 2. RENDAS EXTRAS / VARIÁVEIS */}
               <div className="space-y-3 pt-2">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">+ 2. Rendas Extras / Variáveis</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">+ 2. RENDAS EXTRAS / VARIÁVEIS</h3>
                   <span className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-lg">
                     Subtotal: {formatarMoeda(totalRendaExtra)}
                   </span>
@@ -378,10 +424,24 @@ export default function App() {
                   {rendas.filter(r => r.categoria === 'extra').map(r => (
                     <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                       <div>
-                        <p className="font-bold text-sm">{r.titulo}</p>
+                        <p className="font-bold text-sm text-white">{r.titulo}</p>
                         <p className="text-xs text-gray-500">{r.descricao}</p>
                       </div>
-                      <span className="font-bold text-blue-400 text-sm">{formatarMoeda(r.valor)}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-blue-400 text-sm">{formatarMoeda(r.valor)}</span>
+                        <button 
+                          onClick={() => setModalEditarRenda(r)}
+                          className="text-gray-500 hover:text-white p-1"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => deletarRenda(r.id)}
+                          className="text-gray-600 hover:text-rose-400 p-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -442,7 +502,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* TOTAL DAS FIXAS COM DEDUÇÃO */}
             <div className="border-t border-gray-800 pt-4 flex justify-between items-center">
               <span className="text-sm font-semibold text-gray-400">Total Fixas A Pagar:</span>
               <span className="text-xl font-black text-white">{formatarMoeda(fixasPagar)}</span>
@@ -507,7 +566,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* TOTAL DAS DÍVIDAS COM DEDUÇÃO */}
             <div className="border-t border-gray-800 pt-4 flex justify-between items-center">
               <span className="text-sm font-semibold text-gray-400">Total Dívidas Restantes ({mesAtual}):</span>
               <span className="text-xl font-black text-rose-400">{formatarMoeda(parcelasPagar)}</span>
@@ -515,7 +573,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ABA 4: CAIXINHAS (PROTEGIDAS) --- */}
+        {/* --- ABA 4: CAIXINHAS --- */}
         {abaAtiva === 'caixinhas' && (
           <div>
             {!caixinhaDesbloqueada ? (
@@ -545,7 +603,6 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* HEADBOARD DA CAIXINHA */}
                 <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
@@ -559,7 +616,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* CARDS METAS GLOBAL */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-[#121316] border border-gray-800 rounded-xl p-4">
                       <p className="text-[10px] font-bold text-gray-500 uppercase">Total Acumulado</p>
@@ -577,7 +633,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* PROGRESSO DE METAS */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-gray-400 font-semibold">
                       <span>Alocação e Progresso das Metas do Cofre</span>
@@ -592,7 +647,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* LISTA DAS CAIXINHAS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {caixinhas.map(c => {
                     const pct = c.meta > 0 ? Math.min(((c.acumulado / c.meta) * 100), 100).toFixed(0) : 0;
@@ -630,15 +684,12 @@ export default function App() {
         {/* --- ABA 5: RELATÓRIO --- */}
         {abaAtiva === 'relatorio' && (
           <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-bold">Relatório de Saúde Financeira ({mesAtual})</h2>
-                <p className="text-xs text-gray-400">Visão consolidada do orçamento e percentual de gasto</p>
-              </div>
+            <div>
+              <h2 className="text-lg font-bold">Relatório de Saúde Financeira ({mesAtual})</h2>
+              <p className="text-xs text-gray-400">Visão consolidada do orçamento e percentual de gasto</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              {/* CÍRCULO VISUAL DE PORCENTAGEM */}
               <div className="flex justify-center">
                 <div className="relative w-48 h-48 rounded-full border-8 border-gray-800 flex items-center justify-center border-t-emerald-500 border-r-emerald-500">
                   <div className="text-center">
@@ -648,7 +699,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* LISTA RESUMO */}
               <div className="space-y-3">
                 <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                   <span className="text-xs font-semibold text-gray-300">Renda Bruta Total</span>
@@ -668,6 +718,129 @@ export default function App() {
         )}
 
       </main>
+
+      {/* MODAL ADICIONAR RENDA / TÓPICO */}
+      {modalRendaAberta && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">Adicionar Novo Tópico de Renda</h3>
+              <button onClick={() => setModalRendaAberta(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={adicionarRenda} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Título / Pessoa</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Alessandro, Giovanna, Extra..."
+                  value={novaRenda.titulo}
+                  onChange={(e) => setNovaRenda({ ...novaRenda, titulo: e.target.value })}
+                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Descrição</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Salário Fixo, Vendas, Motoboy..."
+                  value={novaRenda.descricao}
+                  onChange={(e) => setNovaRenda({ ...novaRenda, descricao: e.target.value })}
+                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={novaRenda.valor}
+                    onChange={(e) => setNovaRenda({ ...novaRenda, valor: e.target.value })}
+                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Categoria</label>
+                  <select 
+                    value={novaRenda.categoria}
+                    onChange={(e) => setNovaRenda({ ...novaRenda, categoria: e.target.value })}
+                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                  >
+                    <option value="garantida">1. Ficha Garantida</option>
+                    <option value="extra">2. Renda Extra</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setModalRendaAberta(false)}
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-xl font-semibold text-xs"
+                >
+                  Adicionar Tópico
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR VALOR DA RENDA */}
+      {modalEditarRenda && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">Editar Renda: {modalEditarRenda.titulo}</h3>
+              <button onClick={() => setModalEditarRenda(null)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={salvarEdicaoRenda} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Título</label>
+                <input 
+                  type="text" 
+                  value={modalEditarRenda.titulo}
+                  onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, titulo: e.target.value })}
+                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Novo Valor (R$)</label>
+                <input 
+                  type="number" 
+                  value={modalEditarRenda.valor}
+                  onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, valor: e.target.value })}
+                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setModalEditarRenda(null)}
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-xl font-semibold text-xs"
+                >
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL ADICIONAR PARCELA */}
       {modalParcelaAberta && (
@@ -805,58 +978,60 @@ export default function App() {
         </div>
       )}
 
-      {/* BARRA DE NAVEGAÇÃO INFERIOR (ESTILO PWA) */}
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-[#1e2025]/90 backdrop-blur-md border border-gray-800 rounded-2xl p-1.5 flex space-x-1 shadow-2xl z-40">
-        <button 
-          onClick={() => setAbaAtiva('renda')}
-          className={`flex flex-col items-center px-4 py-2 rounded-xl transition ${
-            abaAtiva === 'renda' ? 'bg-[#2a2d34] text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Wallet className="w-4 h-4 mb-1" />
-          <span className="text-[10px] font-semibold">Renda</span>
-        </button>
+      {/* BARRA DE NAVEGAÇÃO INFERIOR CENTRADA E COM MARGEM DE SEGURANÇA PARA MOBILE */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-center pointer-events-none z-40">
+        <nav className="pointer-events-auto bg-[#1e2025]/95 backdrop-blur-md border border-gray-800/80 rounded-2xl p-1.5 flex justify-between items-center w-full max-w-md shadow-2xl">
+          <button 
+            onClick={() => setAbaAtiva('renda')}
+            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
+              abaAtiva === 'renda' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Wallet className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Renda</span>
+          </button>
 
-        <button 
-          onClick={() => setAbaAtiva('fixas')}
-          className={`flex flex-col items-center px-4 py-2 rounded-xl transition ${
-            abaAtiva === 'fixas' ? 'bg-[#2a2d34] text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Calendar className="w-4 h-4 mb-1" />
-          <span className="text-[10px] font-semibold">Fixas</span>
-        </button>
+          <button 
+            onClick={() => setAbaAtiva('fixas')}
+            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
+              abaAtiva === 'fixas' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Calendar className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Fixas</span>
+          </button>
 
-        <button 
-          onClick={() => setAbaAtiva('dividas')}
-          className={`flex flex-col items-center px-4 py-2 rounded-xl transition ${
-            abaAtiva === 'dividas' ? 'bg-[#2a2d34] text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <CreditCard className="w-4 h-4 mb-1" />
-          <span className="text-[10px] font-semibold">Dívidas</span>
-        </button>
+          <button 
+            onClick={() => setAbaAtiva('dividas')}
+            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
+              abaAtiva === 'dividas' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <CreditCard className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Dívidas</span>
+          </button>
 
-        <button 
-          onClick={() => setAbaAtiva('caixinhas')}
-          className={`flex flex-col items-center px-4 py-2 rounded-xl transition ${
-            abaAtiva === 'caixinhas' ? 'bg-[#2a2d34] text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Shield className="w-4 h-4 mb-1" />
-          <span className="text-[10px] font-semibold">Caixinhas</span>
-        </button>
+          <button 
+            onClick={() => setAbaAtiva('caixinhas')}
+            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
+              abaAtiva === 'caixinhas' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Shield className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Caixinhas</span>
+          </button>
 
-        <button 
-          onClick={() => setAbaAtiva('relatorio')}
-          className={`flex flex-col items-center px-4 py-2 rounded-xl transition ${
-            abaAtiva === 'relatorio' ? 'bg-[#2a2d34] textgit add .-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <PieChart className="w-4 h-4 mb-1" />
-          <span className="text-[10px] font-semibold">Relatório</span>
-        </button>
-      </nav>
+          <button 
+            onClick={() => setAbaAtiva('relatorio')}
+            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
+              abaAtiva === 'relatorio' ? 'bg-[#2a2d34] text-white font-bold' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <PieChart className="w-4 h-4 mb-1" />
+            <span className="text-[10px]">Relatório</span>
+          </button>
+        </nav>
+      </div>
 
     </div>
   );
