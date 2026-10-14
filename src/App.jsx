@@ -118,7 +118,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // --- NOTIFICAÇÕES SEGURAS PARA ANDROID PWA ---
+  // --- NOTIFICAÇÕES INTELIGENTES (1 POR DIA COM CONTROLE NO LOCALSTORAGE) ---
   useEffect(() => {
     if ('Notification' in window) {
       setPermissaoNotificacao(Notification.permission);
@@ -134,7 +134,7 @@ export default function App() {
             if (navigator.serviceWorker && navigator.serviceWorker.ready) {
               navigator.serviceWorker.ready.then(reg => {
                 reg.showNotification("Família Maia Finance", {
-                  body: "Notificações ativadas! Você receberá alertas de vencimento de contas.",
+                  body: "Notificações diárias ativadas com sucesso!",
                   icon: "/pwa-192x192.png"
                 });
               });
@@ -151,38 +151,61 @@ export default function App() {
     if (isAuthenticated && 'Notification' in window && Notification.permission === 'granted') {
       try {
         const hoje = new Date();
-        const mesAtualReal = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+        const anoHoje = hoje.getFullYear();
+        const mesHojeIndex = hoje.getMonth();
         const diaHoje = hoje.getDate();
+        
+        const dataHojeIso = `${anoHoje}-${String(mesHojeIndex + 1).padStart(2, '0')}-${String(diaHoje).padStart(2, '0')}`;
+        const mesChaveHoje = `${anoHoje}-${String(mesHojeIndex + 1).padStart(2, '0')}`;
 
-        const pendentesAvisar = [
-          ...fixas.map(f => ({ ...f, tipo: 'Fixa', pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesAtualReal) })),
-          ...parcelas.map(p => ({ ...p, tipo: 'Parcela', pagoNoMes: Array.isArray(p.pagamentos) && p.pagamentos.includes(mesAtualReal) }))
-        ].filter(item => {
-          if (item.pagoNoMes) return false;
-          const diff = Number(item.vencimento) - diaHoje;
-          return diff >= 0 && diff <= 2;
+        // Unir contas fixas e parcelas pendentes
+        const itensPendentes = [
+          ...fixas.map(f => ({ ...f, tipo: 'Fixa', pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesChaveHoje) })),
+          ...parcelas.map(p => ({ ...p, tipo: 'Parcela', pagoNoMes: Array.isArray(p.pagamentos) && p.pagamentos.includes(mesChaveHoje) }))
+        ];
+
+        itensPendentes.forEach(item => {
+          if (item.pagoNoMes) return;
+
+          const diaVenc = Number(item.vencimento);
+          if (!diaVenc) return;
+
+          const diffDias = diaVenc - diaHoje;
+
+          // Notifica apenas se estiver na janela de 0 a 2 dias de antecedência (vence em 2 dias, 1 dia, ou HOJE)
+          if (diffDias >= 0 && diffDias <= 2) {
+            const chaveNotificacaoKey = `notif_${item.tipo}_${item.id}_${dataHojeIso}`;
+            const jaNotificouHoje = localStorage.getItem(chaveNotificacaoKey);
+
+            if (!jaNotificouHoje) {
+              let mensagem = '';
+              if (diffDias === 0) {
+                mensagem = `ALERTA DE VENCIMENTO: A conta "${item.titulo}" vence HOJE (dia ${diaVenc})!`;
+              } else if (diffDias === 1) {
+                mensagem = `A conta "${item.titulo}" vence AMANHÃ (dia ${diaVenc}).`;
+              } else if (diffDias === 2) {
+                mensagem = `A conta "${item.titulo}" vence daqui a 2 dias (dia ${diaVenc}).`;
+              }
+
+              if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready.then(reg => {
+                  reg.showNotification("Família Maia Finance", {
+                    body: mensagem,
+                    icon: "/pwa-192x192.png",
+                    tag: chaveNotificacaoKey
+                  });
+                  localStorage.setItem(chaveNotificacaoKey, 'true');
+                }).catch(() => {});
+              }
+            }
+          }
         });
 
-        if (pendentesAvisar.length > 0) {
-          pendentesAvisar.forEach(item => {
-            const diff = Number(item.vencimento) - diaHoje;
-            const msg = diff === 0 ? `A conta ${item.titulo} vence HOJE!` : `A conta ${item.titulo} vence em ${diff} dia(s).`;
-            
-            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-              navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification("Alerta de Vencimento • Família Maia", {
-                  body: msg,
-                  icon: "/pwa-192x192.png"
-                });
-              }).catch(() => {});
-            }
-          });
-        }
       } catch (err) {
-        console.log("Erro seguro ao verificar notificações:", err);
+        console.log("Erro seguro ao processar notificações diárias:", err);
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fixas, parcelas]);
 
   // --- CONTROLE DE MÊS ---
   const mesFormatado = dataAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -284,8 +307,10 @@ export default function App() {
 
       if (diffDias === 0) {
         return { texto: 'VENCE HOJE!', urgente: true };
-      } else if (diffDias > 0 && diffDias <= 3) {
-        return { texto: `Vence em ${diffDias} dia${diffDias > 1 ? 's' : ''}`, urgente: false };
+      } else if (diffDias === 1) {
+        return { texto: 'Vence amanhã', urgente: false };
+      } else if (diffDias === 2) {
+        return { texto: 'Vence em 2 dias', urgente: false };
       } else if (diffDias < 0) {
         return { texto: 'Vencida', urgente: true };
       }
