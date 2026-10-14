@@ -3,19 +3,22 @@ import {
   Wallet, Calendar, CreditCard, Shield, PieChart, Lock, Eye, EyeOff, 
   Plus, Trash2, CheckSquare, Square, LogOut, ArrowUpRight, 
   Edit3, X, ChevronLeft, ChevronRight, PlusCircle, MinusCircle,
-  Printer, Target, Percent, Delete
+  Printer, Target, Percent, Delete, Bell, AlertCircle
 } from 'lucide-react';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export default function App() {
-  // --- AUTENTICAÇÃO PRINCIPAL (TECLADO TÁTIL iOS 6 DÍGITOS) ---
+  // --- AUTENTICAÇÃO PRINCIPAL (TECLADO TÁTIL iOS 6 DÍGITOS: 235103) ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [senhaDigitada, setSenhaDigitada] = useState('');
   const [erroLogin, setErroLogin] = useState('');
 
-  // --- NAVEGAÇÃO DE MESES ---
-  const [dataAtual, setDataAtual] = useState(new Date(2026, 9, 1)); // Outubro 2026
+  // --- NAVEGAÇÃO DE MESES (INICIALIZA AUTOMATICAMENTE NO MÊS ATUAL DO CELULAR) ---
+  const [dataAtual, setDataAtual] = useState(() => {
+    const hoje = new Date();
+    return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  });
 
   // --- NAVEGAÇÃO DE ABAS & UI ---
   const [abaAtiva, setAbaAtiva] = useState('renda'); // renda, fixas, dividas, caixinhas, relatorio
@@ -25,6 +28,9 @@ export default function App() {
   const [pinCaixinha, setPinCaixinha] = useState('');
   const [caixinhaDesbloqueada, setCaixinhaDesbloqueada] = useState(false);
   const [erroPin, setErroPin] = useState('');
+
+  // --- PERMISSÃO DE NOTIFICAÇÃO ---
+  const [permissaoNotificacao, setPermissaoNotificacao] = useState('default');
 
   // --- MODAIS ---
   const [modalParcelaAberta, setModalParcelaAberta] = useState(false);
@@ -45,20 +51,21 @@ export default function App() {
     { id: 6, categoria: 'extra', titulo: 'Entrega Motoboy', descricao: 'Extra / Variável', valor: 350 },
   ]);
 
+  // pagamentos: array de meses pagos no formato 'YYYY-MM'
   const [fixas, setFixas] = useState([
-    { id: 1, titulo: 'Internet Fibra (Sua parte)', tag: 'Serviços', valor: 75, pago: false },
-    { id: 2, titulo: 'Plano Celular Casal', tag: 'Comunicação', valor: 100, pago: false },
-    { id: 3, titulo: 'Gasolina Moto', tag: 'Transporte', valor: 50, pago: false },
-    { id: 4, titulo: 'Cuidado das Crianças (Pai)', tag: 'Família', valor: 150, pago: false },
+    { id: 1, titulo: 'Internet Fibra (Sua parte)', tag: 'Serviços', valor: 75, pagamentos: [], vencimento: '10' },
+    { id: 2, titulo: 'Plano Celular Casal', tag: 'Comunicação', valor: 100, pagamentos: [], vencimento: '15' },
+    { id: 3, titulo: 'Gasolina Moto', tag: 'Transporte', valor: 50, pagamentos: [], vencimento: '05' },
+    { id: 4, titulo: 'Cuidado das Crianças (Pai)', tag: 'Família', valor: 150, pagamentos: [], vencimento: '10' },
   ]);
 
   const [parcelas, setParcelas] = useState([
-    { id: 1, titulo: 'Cartão da Tia (Fatura Principal)', tag: 'Cartão Principal', valor: 2052, parcelaatual: 1, totalparcelas: 99, vencimento: '10', mesInicio: '2026-10', pago: false },
-    { id: 2, titulo: 'Dívida Primo #1', tag: 'Empréstimo', valor: 121, parcelaatual: 8, totalparcelas: 10, vencimento: '05', mesInicio: '2026-03', pago: false },
-    { id: 3, titulo: 'Dívida Primo #2', tag: 'Empréstimo', valor: 211, parcelaatual: 5, totalparcelas: 10, vencimento: '05', mesInicio: '2026-06', pago: false },
-    { id: 4, titulo: 'Dívida Primo #3', tag: 'Empréstimo', valor: 107, parcelaatual: 3, totalparcelas: 6, vencimento: '05', mesInicio: '2026-08', pago: false },
-    { id: 5, titulo: 'Cabelo alessandro', tag: 'Geral', valor: 85, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pago: false },
-    { id: 6, titulo: 'pneu', tag: 'Geral', valor: 140, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pago: false },
+    { id: 1, titulo: 'Cartão da Tia (Fatura Principal)', tag: 'Cartão Principal', valor: 2052, parcelaatual: 1, totalparcelas: 99, vencimento: '10', mesInicio: '2026-10', pagamentos: [] },
+    { id: 2, titulo: 'Dívida Primo #1', tag: 'Empréstimo', valor: 121, parcelaatual: 8, totalparcelas: 10, vencimento: '05', mesInicio: '2026-03', pagamentos: [] },
+    { id: 3, titulo: 'Dívida Primo #2', tag: 'Empréstimo', valor: 211, parcelaatual: 5, totalparcelas: 10, vencimento: '05', mesInicio: '2026-06', pagamentos: [] },
+    { id: 4, titulo: 'Dívida Primo #3', tag: 'Empréstimo', valor: 107, parcelaatual: 3, totalparcelas: 6, vencimento: '05', mesInicio: '2026-08', pagamentos: [] },
+    { id: 5, titulo: 'Cabelo alessandro', tag: 'Geral', valor: 85, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pagamentos: [] },
+    { id: 6, titulo: 'pneu', tag: 'Geral', valor: 140, parcelaatual: 1, totalparcelas: 1, vencimento: '10', mesInicio: '2026-10', pagamentos: [] },
   ]);
 
   const [caixinhas, setCaixinhas] = useState([
@@ -71,7 +78,7 @@ export default function App() {
   // --- FORMULÁRIOS DE NOVOS ITENS ---
   const mesFormatadoIso = `${dataAtual.getFullYear()}-${String(dataAtual.getMonth() + 1).padStart(2, '0')}`;
   const [novaParcela, setNovaParcela] = useState({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral', mesInicio: mesFormatadoIso });
-  const [novaFixa, setNovaFixa] = useState({ titulo: '', valor: '', tag: 'Serviços' });
+  const [novaFixa, setNovaFixa] = useState({ titulo: '', valor: '', vencimento: '10', tag: 'Serviços' });
   const [novaRenda, setNovaRenda] = useState({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
   const [novaCaixinha, setNovaCaixinha] = useState({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#a855f7', emoji: '🎯' });
 
@@ -113,9 +120,31 @@ export default function App() {
     salvarNoFirebase();
   }, [rendas, fixas, parcelas, caixinhas]);
 
+  // --- NOTIFICAÇÕES DO CELULAR ---
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPermissaoNotificacao(Notification.permission);
+    }
+  }, []);
+
+  const solicitarPermissaoNotificacao = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        setPermissaoNotificacao(permission);
+        if (permission === 'granted') {
+          new Notification("Família Maia Finance", {
+            body: "Notificações ativadas! Você receberá alertas de vencimento de contas.",
+            icon: "/pwa-192x192.png"
+          });
+        }
+      });
+    }
+  };
+
   // --- CONTROLE DE MÊS ---
   const mesFormatado = dataAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   const mesFormatadoCapitalized = mesFormatado.charAt(0).toUpperCase() + mesFormatado.slice(1);
+  const mesChaveAtual = `${dataAtual.getFullYear()}-${String(dataAtual.getMonth() + 1).padStart(2, '0')}`;
 
   const mudarMes = (delta) => {
     const novaData = new Date(dataAtual);
@@ -173,37 +202,125 @@ export default function App() {
       }
 
       const numParcelaNoMes = p.parcelaatual + diffMeses;
+      const estaPagoNoMes = Array.isArray(p.pagamentos) && p.pagamentos.includes(mesChaveAtual);
+
       return {
         ...p,
-        parcelaExibida: numParcelaNoMes
+        parcelaExibida: numParcelaNoMes,
+        pagoNoMes: estaPagoNoMes
       };
     }).filter(Boolean);
   };
 
   const parcelasAtivasNoMes = obterParcelasDoMes();
 
+  const fixasAtivasNoMes = fixas.map(f => ({
+    ...f,
+    pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesChaveAtual)
+  }));
+
+  // --- HELPER CÁLCULO DE VENCIMENTO EM DIAS ---
+  const calcularAlertaVencimento = (diaVencimento, estaPago) => {
+    if (estaPago) return null;
+    const diaVenc = Number(diaVencimento);
+    if (!diaVenc) return null;
+
+    const hoje = new Date();
+    const mesAtualVisual = dataAtual.getMonth();
+    const anoAtualVisual = dataAtual.getFullYear();
+
+    // Se estiver no mês do calendário real
+    if (hoje.getMonth() === mesAtualVisual && hoje.getFullYear() === anoAtualVisual) {
+      const diaHoje = hoje.getDate();
+      const diffDias = diaVenc - diaHoje;
+
+      if (diffDias === 0) {
+        return { texto: 'VENCE HOJE!', urgente: true };
+      } else if (diffDias > 0 && diffDias <= 3) {
+        return { texto: `Vence em ${diffDias} dia${diffDias > 1 ? 's' : ''}`, urgente: false };
+      } else if (diffDias < 0) {
+        return { texto: 'Vencida', urgente: true };
+      }
+    }
+    return null;
+  };
+
+  // --- VERIFICADOR E ENVIO DE NOTIFICAÇÕES PUSH ---
+  useEffect(() => {
+    if (isAuthenticated && 'Notification' in window && Notification.permission === 'granted') {
+      const hoje = new Date();
+      const mesAtualReal = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+      const diaHoje = hoje.getDate();
+
+      const pendentesAvisar = [
+        ...fixas.map(f => ({ ...f, tipo: 'Fixa', pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesAtualReal) })),
+        ...parcelas.map(p => ({ ...p, tipo: 'Parcela', pagoNoMes: Array.isArray(p.pagamentos) && p.pagamentos.includes(mesAtualReal) }))
+      ].filter(item => {
+        if (item.pagoNoMes) return false;
+        const diff = Number(item.vencimento) - diaHoje;
+        return diff >= 0 && diff <= 2;
+      });
+
+      if (pendentesAvisar.length > 0) {
+        pendentesAvisar.forEach(item => {
+          const diff = Number(item.vencimento) - diaHoje;
+          const msg = diff === 0 ? `A conta ${item.titulo} vence HOJE!` : `A conta ${item.titulo} vence em ${diff} dia(s).`;
+          new Notification("Alerta de Vencimento • Família Maia", {
+            body: msg,
+            icon: "/pwa-192x192.png"
+          });
+        });
+      }
+    }
+  }, [isAuthenticated]);
+
   // --- CÁLCULOS DINÂMICOS ---
   const totalRendaGarantida = rendas.filter(r => r.categoria === 'garantida').reduce((acc, r) => acc + Number(r.valor), 0);
   const totalRendaExtra = rendas.filter(r => r.categoria === 'extra').reduce((acc, r) => acc + Number(r.valor), 0);
   const rendaTotal = totalRendaGarantida + totalRendaExtra;
 
-  const fixasPagar = fixas.filter(f => !f.pago).reduce((acc, f) => acc + Number(f.valor), 0);
-  const totalFixasBruto = fixas.reduce((acc, f) => acc + Number(f.valor), 0);
+  const fixasPagar = fixasAtivasNoMes.filter(f => !f.pagoNoMes).reduce((acc, f) => acc + Number(f.valor), 0);
+  const totalFixasBruto = fixasAtivasNoMes.reduce((acc, f) => acc + Number(f.valor), 0);
 
-  const parcelasPagar = parcelasAtivasNoMes.filter(p => !p.pago).reduce((acc, p) => acc + Number(p.valor), 0);
-  const totalParcelasBruto = totalFixasBruto + parcelasAtivasNoMes.reduce((acc, p) => acc + Number(p.valor), 0);
+  const parcelasPagar = parcelasAtivasNoMes.filter(p => !p.pagoNoMes).reduce((acc, p) => acc + Number(p.valor), 0);
+  const totalParcelasBruto = parcelasAtivasNoMes.reduce((acc, p) => acc + Number(p.valor), 0);
 
   const despesasAbertasTotal = fixasPagar + parcelasPagar;
-  const despesasBrutasTotal = totalFixasBruto + parcelasAtivasNoMes.reduce((acc, p) => acc + Number(p.valor), 0);
+  const despesasBrutasTotal = totalFixasBruto + totalParcelasBruto;
   const saldoProjetado = rendaTotal - despesasAbertasTotal;
   const pctComprometido = rendaTotal > 0 ? ((despesasBrutasTotal / rendaTotal) * 100).toFixed(1) : 0;
 
   const totalAcumuladoCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.acumulado), 0);
   const metaGlobalCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.meta), 0);
 
-  // --- HANDLERS ---
-  const toggleFixaPago = (id) => setFixas(fixas.map(f => f.id === id ? { ...f, pago: !f.pago } : f));
-  const toggleParcelaPago = (id) => setParcelas(parcelas.map(p => p.id === id ? { ...p, pago: !p.pago } : p));
+  // --- HANDLERS TOGGLE DE PAGAMENTO ISOLADO POR MÊS ---
+  const toggleFixaPago = (id) => {
+    setFixas(fixas.map(f => {
+      if (f.id === id) {
+        const pagamentosAtuais = Array.isArray(f.pagamentos) ? f.pagamentos : [];
+        const jaPago = pagamentosAtuais.includes(mesChaveAtual);
+        const novosPagamentos = jaPago 
+          ? pagamentosAtuais.filter(m => m !== mesChaveAtual)
+          : [...pagamentosAtuais, mesChaveAtual];
+        return { ...f, pagamentos: novosPagamentos };
+      }
+      return f;
+    }));
+  };
+
+  const toggleParcelaPago = (id) => {
+    setParcelas(parcelas.map(p => {
+      if (p.id === id) {
+        const pagamentosAtuais = Array.isArray(p.pagamentos) ? p.pagamentos : [];
+        const jaPago = pagamentosAtuais.includes(mesChaveAtual);
+        const novosPagamentos = jaPago 
+          ? pagamentosAtuais.filter(m => m !== mesChaveAtual)
+          : [...pagamentosAtuais, mesChaveAtual];
+        return { ...p, pagamentos: novosPagamentos };
+      }
+      return p;
+    }));
+  };
 
   const deletarFixa = (id) => setFixas(fixas.filter(f => f.id !== id));
   const deletarParcela = (id) => setParcelas(parcelas.filter(p => p.id !== id));
@@ -260,7 +377,7 @@ export default function App() {
       totalparcelas: Number(novaParcela.totalparcelas),
       tag: novaParcela.tag,
       mesInicio: novaParcela.mesInicio,
-      pago: false
+      pagamentos: []
     };
     setParcelas([...parcelas, item]);
     setModalParcelaAberta(false);
@@ -274,12 +391,13 @@ export default function App() {
       id: Date.now(),
       titulo: novaFixa.titulo,
       valor: Number(novaFixa.valor),
+      vencimento: novaFixa.vencimento || '10',
       tag: novaFixa.tag,
-      pago: false
+      pagamentos: []
     };
     setFixas([...fixas, item]);
     setModalFixaAberta(false);
-    setNovaFixa({ titulo: '', valor: '', tag: 'Serviços' });
+    setNovaFixa({ titulo: '', valor: '', vencimento: '10', tag: 'Serviços' });
   };
 
   const executarOperacaoCaixinha = (e) => {
@@ -409,6 +527,16 @@ export default function App() {
         </div>
 
         <div className="flex items-center space-x-2">
+          {permissaoNotificacao !== 'granted' && (
+            <button 
+              onClick={solicitarPermissaoNotificacao}
+              title="Ativar Notificações no Celular"
+              className="p-2.5 bg-purple-500/10 border border-purple-500/30 rounded-2xl hover:bg-purple-500/20 text-purple-300 transition"
+            >
+              <Bell className="w-4 h-4 animate-bounce" />
+            </button>
+          )}
+
           <button 
             onClick={() => setOcultarValores(!ocultarValores)}
             className="p-2.5 bg-[#171821] border border-gray-800 rounded-2xl hover:bg-gray-800 text-gray-300 transition"
@@ -572,41 +700,58 @@ export default function App() {
             </div>
 
             <div className="space-y-3">
-              {fixas.map(item => (
-                <div 
-                  key={item.id} 
-                  className={`bg-[#101117] border rounded-2xl p-4 flex items-center justify-between transition ${
-                    item.pago ? 'border-emerald-500/20 opacity-50' : 'border-gray-800'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <button onClick={() => toggleFixaPago(item.id)} className="text-gray-400 hover:text-emerald-400">
-                      {item.pago ? <CheckSquare className="w-5 h-5 text-emerald-400" /> : <Square className="w-5 h-5" />}
-                    </button>
-                    <div>
-                      <p className={`font-semibold text-sm ${item.pago ? 'line-through text-gray-500' : 'text-white'}`}>
-                        {item.titulo}
-                      </p>
-                      <span className="text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md">
-                        {item.tag}
+              {fixasAtivasNoMes.map(item => {
+                const alerta = calcularAlertaVencimento(item.vencimento, item.pagoNoMes);
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`bg-[#101117] border rounded-2xl p-4 flex items-center justify-between transition ${
+                      item.pagoNoMes ? 'border-emerald-500/20 opacity-50' : 'border-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <button onClick={() => toggleFixaPago(item.id)} className="text-gray-400 hover:text-emerald-400">
+                        {item.pagoNoMes ? <CheckSquare className="w-5 h-5 text-emerald-400" /> : <Square className="w-5 h-5" />}
+                      </button>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <p className={`font-semibold text-sm ${item.pagoNoMes ? 'line-through text-gray-500' : 'text-white'}`}>
+                            {item.titulo}
+                          </p>
+                          <span className="text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md">
+                            {item.tag}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">Vencimento: Dia {item.vencimento}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      {alerta && (
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex items-center space-x-1 ${
+                          alerta.urgente 
+                            ? 'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse' 
+                            : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                        }`}>
+                          <AlertCircle className="w-3 h-3" />
+                          <span>{alerta.texto}</span>
+                        </span>
+                      )}
+
+                      <span className={`font-bold text-sm ${item.pagoNoMes ? 'text-gray-500 line-through' : 'text-white'}`}>
+                        {formatarMoeda(item.valor)}
                       </span>
+                      <button onClick={() => deletarFixa(item.id)} className="text-gray-600 hover:text-rose-400">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-4">
-                    <span className={`font-bold text-sm ${item.pago ? 'text-gray-500 line-through' : 'text-white'}`}>
-                      {formatarMoeda(item.valor)}
-                    </span>
-                    <button onClick={() => deletarFixa(item.id)} className="text-gray-600 hover:text-rose-400">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border-t border-gray-800 pt-4 flex justify-between items-center">
-              <span className="text-xs font-semibold text-gray-400">Total Fixas A Pagar:</span>
+              <span className="text-xs font-semibold text-gray-400">Total Fixas A Pagar ({mesFormatadoCapitalized}):</span>
               <span className="text-lg font-black text-white">{formatarMoeda(fixasPagar)}</span>
             </div>
           </div>
@@ -633,42 +778,56 @@ export default function App() {
               {parcelasAtivasNoMes.length === 0 ? (
                 <p className="text-xs text-gray-500 text-center py-6">Nenhuma parcela ativa cadastrada para este mês.</p>
               ) : (
-                parcelasAtivasNoMes.map(p => (
-                  <div 
-                    key={p.id} 
-                    className={`bg-[#101117] border rounded-2xl p-4 flex items-center justify-between transition ${
-                      p.pago ? 'border-emerald-500/20 opacity-50' : 'border-gray-800'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <button onClick={() => toggleParcelaPago(p.id)} className="text-gray-400 hover:text-emerald-400">
-                        {p.pago ? <CheckSquare className="w-5 h-5 text-emerald-400" /> : <Square className="w-5 h-5" />}
-                      </button>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <p className={`font-semibold text-sm ${p.pago ? 'line-through text-gray-500' : 'text-white'}`}>
-                            {p.titulo}
+                parcelasAtivasNoMes.map(p => {
+                  const alerta = calcularAlertaVencimento(p.vencimento, p.pagoNoMes);
+                  return (
+                    <div 
+                      key={p.id} 
+                      className={`bg-[#101117] border rounded-2xl p-4 flex items-center justify-between transition ${
+                        p.pagoNoMes ? 'border-emerald-500/20 opacity-50' : 'border-gray-800'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <button onClick={() => toggleParcelaPago(p.id)} className="text-gray-400 hover:text-emerald-400">
+                          {p.pagoNoMes ? <CheckSquare className="w-5 h-5 text-emerald-400" /> : <Square className="w-5 h-5" />}
+                        </button>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className={`font-semibold text-sm ${p.pagoNoMes ? 'line-through text-gray-500' : 'text-white'}`}>
+                              {p.titulo}
+                            </p>
+                            <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                              {p.tag}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Parcela: {p.parcelaExibida || p.parcelaatual}/{p.totalparcelas} • Vencimento: Dia {p.vencimento}
                           </p>
-                          <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-                            {p.tag}
-                          </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Parcela: {p.parcelaExibida || p.parcelaatual}/{p.totalparcelas} • Vencimento: Dia {p.vencimento}
-                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        {alerta && (
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border flex items-center space-x-1 ${
+                            alerta.urgente 
+                              ? 'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse' 
+                              : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                          }`}>
+                            <AlertCircle className="w-3 h-3" />
+                            <span>{alerta.texto}</span>
+                          </span>
+                        )}
+
+                        <span className={`font-bold text-sm ${p.pagoNoMes ? 'text-gray-500 line-through' : 'text-white'}`}>
+                          {formatarMoeda(p.valor)}
+                        </span>
+                        <button onClick={() => deletarParcela(p.id)} className="text-gray-600 hover:text-rose-400">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-4">
-                      <span className={`font-bold text-sm ${p.pago ? 'text-gray-500 line-through' : 'text-white'}`}>
-                        {formatarMoeda(p.valor)}
-                      </span>
-                      <button onClick={() => deletarParcela(p.id)} className="text-gray-600 hover:text-rose-400">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -679,7 +838,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ABA 4: CAIXINHAS (COM CORES NEON INDIVIDUAIS RESTAURADAS) --- */}
+        {/* --- ABA 4: CAIXINHAS --- */}
         {abaAtiva === 'caixinhas' && (
           <div className="print:hidden">
             {!caixinhaDesbloqueada ? (
@@ -801,7 +960,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* GRID CARDS DAS CAIXINHAS COM CORES INDIVIDUAIS RESTAURADAS */}
+                {/* GRID CARDS DAS CAIXINHAS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {caixinhas.map(c => {
                     const pct = c.meta > 0 ? Math.min(((c.acumulado / c.meta) * 100), 100).toFixed(0) : 0;
@@ -1320,15 +1479,26 @@ export default function App() {
                   className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
                 />
               </div>
-              <div>
-                <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
-                <input 
-                  type="number" 
-                  placeholder="0.00"
-                  value={novaFixa.valor}
-                  onChange={(e) => setNovaFixa({ ...novaFixa, valor: e.target.value })}
-                  className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={novaFixa.valor}
+                    onChange={(e) => setNovaFixa({ ...novaFixa, valor: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Dia Vencimento</label>
+                  <input 
+                    type="number" 
+                    value={novaFixa.vencimento}
+                    onChange={(e) => setNovaFixa({ ...novaFixa, vencimento: e.target.value })}
+                    className="w-full bg-[#101117] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-purple-500"
+                  />
+                </div>
               </div>
               <div className="flex space-x-3 pt-2">
                 <button 
