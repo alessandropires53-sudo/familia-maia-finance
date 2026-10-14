@@ -850,7 +850,7 @@ export default function App() {
         <button 
           onClick={() => setAbaAtiva('relatorio')}
           className={`flex flex-col items-center px-4 py-2 rounded-xl transition ${
-            abaAtiva === 'relatorio' ? 'bg-[#2a2d34] text-white' : 'text-gray-400 hover:text-white'
+            abaAtiva === 'relatorio' ? 'bg-[#2a2d34] textgit add .-white' : 'text-gray-400 hover:text-white'
           }`}
         >
           <PieChart className="w-4 h-4 mb-1" />
