@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wallet, Calendar, CreditCard, Shield, PieChart, Lock, Eye, EyeOff, 
-  Plus, Trash2, CheckSquare, Square, LogOut, FileText, ArrowUpRight, 
-  Edit3, X
+  Plus, Trash2, CheckSquare, Square, LogOut, ArrowUpRight, 
+  Edit3, X, ChevronLeft, ChevronRight, PlusCircle, MinusCircle,
+  ShieldCheck, Cake, Heart, Home
 } from 'lucide-react';
 import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -13,10 +14,12 @@ export default function App() {
   const [inputSenha, setInputSenha] = useState('');
   const [erroLogin, setErroLogin] = useState('');
 
-  // --- NAVEGAÇÃO & UI ---
+  // --- NAVEGAÇÃO DE MESES ---
+  const [dataAtual, setDataAtual] = useState(new Date(2026, 9, 1)); // Outubro 2026
+
+  // --- NAVEGAÇÃO DE ABAS & UI ---
   const [abaAtiva, setAbaAtiva] = useState('renda'); // renda, fixas, dividas, caixinhas, relatorio
   const [ocultarValores, setOcultarValores] = useState(false);
-  const [mesAtual, setMesAtual] = useState('2026-10');
 
   // --- CAIXINHA PROTEGIDA ---
   const [pinCaixinha, setPinCaixinha] = useState('');
@@ -28,6 +31,8 @@ export default function App() {
   const [modalFixaAberta, setModalFixaAberta] = useState(false);
   const [modalRendaAberta, setModalRendaAberta] = useState(false);
   const [modalEditarRenda, setModalEditarRenda] = useState(null);
+  const [modalOperacaoCaixinha, setModalOperacaoCaixinha] = useState(null); // { item, tipo: 'guardar'|'retirar' }
+  const [valorOperacaoCaixinha, setValorOperacaoCaixinha] = useState('');
 
   // --- ESTADOS DE DADOS FINANCEIROS ---
   const [rendas, setRendas] = useState([
@@ -56,14 +61,14 @@ export default function App() {
   ]);
 
   const [caixinhas, setCaixinhas] = useState([
-    { id: 1, titulo: 'Reserva de Emergência', sub: 'CDB 100% CDI (Liquidez Diária)', acumulado: 0, meta: 1000, cor: '#10b981' },
-    { id: 2, titulo: 'Festa de 1 Aninho', sub: 'Rendimento Fixo Diário', acumulado: 0, meta: 4000, cor: '#ec4899' },
-    { id: 3, titulo: 'Casamento & Viagem', sub: 'Tesouro Selic (Pós-fixado)', acumulado: 0, meta: 45000, cor: '#f59e0b' },
-    { id: 4, titulo: 'Obra da Casa (Laje e Muro)', sub: 'IPCA+ (Proteção Inflação)', acumulado: 0, meta: 75000, cor: '#3b82f6' },
+    { id: 1, titulo: 'Reserva de Emergência', sub: 'CDB 100% CDI (Liquidez Diária)', acumulado: 0, meta: 1000, cor: '#10b981', icone: 'shield' },
+    { id: 2, titulo: 'Festa de 1 Aninho', sub: 'Rendimento Fixo Diário', acumulado: 0, meta: 4000, cor: '#ec4899', icone: 'cake' },
+    { id: 3, titulo: 'Casamento & Viagem', sub: 'Tesouro Selic (Pós-fixado)', acumulado: 0, meta: 45000, cor: '#f59e0b', icone: 'heart' },
+    { id: 4, titulo: 'Obra da Casa (Laje e Muro)', sub: 'IPCA+ (Proteção Inflação)', acumulado: 0, meta: 75000, cor: '#3b82f6', icone: 'home' },
   ]);
 
   // --- FORMULÁRIOS DE NOVOS ITENS ---
-  const [novaParcela, setNovaParcela] = useState({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral', mesInicio: mesAtual });
+  const [novaParcela, setNovaParcela] = useState({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral' });
   const [novaFixa, setNovaFixa] = useState({ titulo: '', valor: '', tag: 'Serviços' });
   const [novaRenda, setNovaRenda] = useState({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
 
@@ -105,6 +110,16 @@ export default function App() {
     salvarNoFirebase();
   }, [rendas, fixas, parcelas, caixinhas]);
 
+  // --- CONTROLE DE MÊS ---
+  const mesFormatado = dataAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const mesFormatadoCapitalized = mesFormatado.charAt(0).toUpperCase() + mesFormatado.slice(1);
+
+  const mudarMes = (delta) => {
+    const novaData = new Date(dataAtual);
+    novaData.setMonth(novaData.getMonth() + delta);
+    setDataAtual(novaData);
+  };
+
   // --- LOGIN ---
   const handleLogin = (e) => {
     e.preventDefault();
@@ -145,7 +160,7 @@ export default function App() {
   const totalAcumuladoCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.acumulado), 0);
   const metaGlobalCaixinhas = caixinhas.reduce((acc, c) => acc + Number(c.meta), 0);
 
-  // --- HANDLERS DE ALTERAÇÃO ---
+  // --- HANDLERS ---
   const toggleFixaPago = (id) => setFixas(fixas.map(f => f.id === id ? { ...f, pago: !f.pago } : f));
   const toggleParcelaPago = (id) => setParcelas(parcelas.map(p => p.id === id ? { ...p, pago: !p.pago } : p));
 
@@ -186,12 +201,11 @@ export default function App() {
       parcelaatual: Number(novaParcela.parcelaatual),
       totalparcelas: Number(novaParcela.totalparcelas),
       tag: novaParcela.tag,
-      mesInicio: novaParcela.mesInicio,
       pago: false
     };
     setParcelas([...parcelas, item]);
     setModalParcelaAberta(false);
-    setNovaParcela({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral', mesInicio: mesAtual });
+    setNovaParcela({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral' });
   };
 
   const adicionarFixa = (e) => {
@@ -207,6 +221,21 @@ export default function App() {
     setFixas([...fixas, item]);
     setModalFixaAberta(false);
     setNovaFixa({ titulo: '', valor: '', tag: 'Serviços' });
+  };
+
+  const executarOperacaoCaixinha = (e) => {
+    e.preventDefault();
+    if (!modalOperacaoCaixinha || !valorOperacaoCaixinha) return;
+    const val = Number(valorOperacaoCaixinha);
+    setCaixinhas(caixinhas.map(c => {
+      if (c.id === modalOperacaoCaixinha.item.id) {
+        const novoValor = modalOperacaoCaixinha.tipo === 'guardar' ? c.acumulado + val : Math.max(0, c.acumulado - val);
+        return { ...c, acumulado: novoValor };
+      }
+      return c;
+    }));
+    setModalOperacaoCaixinha(null);
+    setValorOperacaoCaixinha('');
   };
 
   const formatarMoeda = (val) => {
@@ -264,7 +293,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#121316] text-white pb-32 font-sans">
       
-      {/* HEADER SUPERIOR */}
+      {/* HEADER SUPERIOR COM MÊS EM SETINHAS */}
       <header className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-[#1e2025] rounded-xl flex items-center justify-center border border-gray-800">
@@ -272,14 +301,16 @@ export default function App() {
           </div>
           <div>
             <h1 className="font-bold text-lg leading-tight">Família Maia Finance</h1>
-            <div className="flex items-center space-x-2 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <input 
-                type="month" 
-                value={mesAtual} 
-                onChange={(e) => setMesAtual(e.target.value)}
-                className="bg-transparent text-xs text-gray-300 font-medium focus:outline-none cursor-pointer"
-              />
+            {/* SELETOR MÊS < > */}
+            <div className="flex items-center space-x-1 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
+              <button onClick={() => mudarMes(-1)} className="text-gray-400 hover:text-white p-0.5">
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-xs text-gray-300 font-medium px-1">{mesFormatadoCapitalized}</span>
+              <button onClick={() => mudarMes(1)} className="text-gray-400 hover:text-white p-0.5">
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
@@ -310,7 +341,6 @@ export default function App() {
         {/* --- ABA 1: RENDA --- */}
         {abaAtiva === 'renda' && (
           <div className="space-y-6">
-            {/* CARDS DE RESUMO EM CASCATA */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
                 <div>
@@ -343,7 +373,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* BARRA DE COMPROMETIMENTO */}
             <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold text-gray-300">Resumo Orçamentário Visual</span>
@@ -358,14 +387,12 @@ export default function App() {
               </div>
             </div>
 
-            {/* SEÇÃO RENDAS & ENTRADAS */}
             <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-lg font-bold">Rendas & Entradas da Família</h2>
                   <p className="text-xs text-gray-400">Gerencie salários, extras e crie novos tópicos de receita</p>
                 </div>
-                {/* BOTÃO + NOVO TÓPICO RESTAURADO */}
                 <button 
                   onClick={() => setModalRendaAberta(true)}
                   className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow"
@@ -375,7 +402,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* 1. RENDA FICHA GARANTIDA */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">1. RENDA FICHA GARANTIDA</h3>
@@ -385,25 +411,17 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {rendas.filter(r => r.categoria === 'garantida').map(r => (
-                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center group">
+                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
                       <div>
                         <p className="text-xs text-gray-400">{r.titulo}</p>
                         <p className="font-bold text-sm text-white">{r.descricao}</p>
                       </div>
                       <div className="flex items-center space-x-3">
                         <span className="font-bold text-emerald-400 text-sm">{formatarMoeda(r.valor)}</span>
-                        <button 
-                          onClick={() => setModalEditarRenda(r)}
-                          className="text-gray-500 hover:text-white p-1"
-                          title="Editar valor"
-                        >
+                        <button onClick={() => setModalEditarRenda(r)} className="text-gray-500 hover:text-white p-1">
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
-                        <button 
-                          onClick={() => deletarRenda(r.id)}
-                          className="text-gray-600 hover:text-rose-400 p-1"
-                          title="Excluir"
-                        >
+                        <button onClick={() => deletarRenda(r.id)} className="text-gray-600 hover:text-rose-400 p-1">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -412,7 +430,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 2. RENDAS EXTRAS / VARIÁVEIS */}
               <div className="space-y-3 pt-2">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">+ 2. RENDAS EXTRAS / VARIÁVEIS</h3>
@@ -429,16 +446,10 @@ export default function App() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-blue-400 text-sm">{formatarMoeda(r.valor)}</span>
-                        <button 
-                          onClick={() => setModalEditarRenda(r)}
-                          className="text-gray-500 hover:text-white p-1"
-                        >
+                        <button onClick={() => setModalEditarRenda(r)} className="text-gray-500 hover:text-white p-1">
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
-                        <button 
-                          onClick={() => deletarRenda(r.id)}
-                          className="text-gray-600 hover:text-rose-400 p-1"
-                        >
+                        <button onClick={() => deletarRenda(r.id)} className="text-gray-600 hover:text-rose-400 p-1">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -467,7 +478,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* LISTA DE FIXAS */}
             <div className="space-y-3">
               {fixas.map(item => (
                 <div 
@@ -509,24 +519,23 @@ export default function App() {
           </div>
         )}
 
-        {/* --- ABA 3: DÍVIDAS / PARCELAS --- */}
+        {/* --- ABA 3: DÍVIDAS / PARCELAS (FORMATADO E REPAGINADO) --- */}
         {abaAtiva === 'dividas' && (
           <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-lg font-bold">Parcelas Ativas em {mesAtual}</h2>
+            <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+              <div className="text-center sm:text-left">
+                <h2 className="text-lg font-bold">Parcelas Ativas em {mesFormatadoCapitalized}</h2>
                 <p className="text-xs text-gray-400">Dívidas e parcelamentos vigentes (Marque o check ao quitar)</p>
               </div>
               <button 
                 onClick={() => setModalParcelaAberta(true)}
-                className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1"
+                className="bg-white hover:bg-gray-200 text-black font-semibold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nova Parcela</span>
               </button>
             </div>
 
-            {/* LISTA DE PARCELAS */}
             <div className="space-y-3">
               {parcelas.map(p => (
                 <div 
@@ -567,13 +576,13 @@ export default function App() {
             </div>
 
             <div className="border-t border-gray-800 pt-4 flex justify-between items-center">
-              <span className="text-sm font-semibold text-gray-400">Total Dívidas Restantes ({mesAtual}):</span>
+              <span className="text-sm font-semibold text-gray-400">Total Dívidas Restantes ({mesFormatadoCapitalized}):</span>
               <span className="text-xl font-black text-rose-400">{formatarMoeda(parcelasPagar)}</span>
             </div>
           </div>
         )}
 
-        {/* --- ABA 4: CAIXINHAS --- */}
+        {/* --- ABA 4: CAIXINHAS (RESTAURADA E VISUALMENTE IDÊNTICA AO ORIGINAL) --- */}
         {abaAtiva === 'caixinhas' && (
           <div>
             {!caixinhaDesbloqueada ? (
@@ -614,6 +623,12 @@ export default function App() {
                       </div>
                       <p className="text-xs text-gray-400">Gestão de patrimônio, CDI e proteções contra inflação</p>
                     </div>
+
+                    {/* BOTÃO VERDE ORIGINAL + NOVA CAIXINHA */}
+                    <button className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow">
+                      <Plus className="w-4 h-4" />
+                      <span>Nova Caixinha</span>
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -647,15 +662,24 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* CARDS DAS CAIXINHAS RESTAURADOS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {caixinhas.map(c => {
                     const pct = c.meta > 0 ? Math.min(((c.acumulado / c.meta) * 100), 100).toFixed(0) : 0;
                     return (
                       <div key={c.id} className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold text-base">{c.titulo}</h3>
-                            <p className="text-xs text-gray-400">{c.sub}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: c.cor }}>
+                              {c.icone === 'shield' && <ShieldCheck className="w-5 h-5" />}
+                              {c.icone === 'cake' && <Cake className="w-5 h-5" />}
+                              {c.icone === 'heart' && <Heart className="w-5 h-5" />}
+                              {c.icone === 'home' && <Home className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-base">{c.titulo}</h3>
+                              <p className="text-xs text-gray-400">{c.sub}</p>
+                            </div>
                           </div>
                           <span className="text-xs font-bold text-gray-300 bg-gray-800 px-2 py-1 rounded-lg">{pct}%</span>
                         </div>
@@ -669,8 +693,26 @@ export default function App() {
                             <div style={{ width: `${pct}%`, backgroundColor: c.cor }} className="h-full"></div>
                           </div>
                           <p className="text-[10px] text-gray-500 text-right">
-                            Faltam {formatarMoeda(c.meta - c.acumulado)} para atingir a meta
+                            Faltam <strong className="text-amber-400">{formatarMoeda(c.meta - c.acumulado)}</strong> para atingir a meta
                           </p>
+                        </div>
+
+                        {/* BOTÕES DE GUARDAR E RETIRAR */}
+                        <div className="flex space-x-2 pt-2">
+                          <button 
+                            onClick={() => setModalOperacaoCaixinha({ item: c, tipo: 'guardar' })}
+                            className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 border border-emerald-500/30"
+                          >
+                            <PlusCircle className="w-3.5 h-3.5" />
+                            <span>+ Guardar</span>
+                          </button>
+                          <button 
+                            onClick={() => setModalOperacaoCaixinha({ item: c, tipo: 'retirar' })}
+                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 rounded-xl text-xs flex items-center justify-center space-x-1 border border-gray-700"
+                          >
+                            <MinusCircle className="w-3.5 h-3.5" />
+                            <span>Retirar</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -685,7 +727,7 @@ export default function App() {
         {abaAtiva === 'relatorio' && (
           <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
             <div>
-              <h2 className="text-lg font-bold">Relatório de Saúde Financeira ({mesAtual})</h2>
+              <h2 className="text-lg font-bold">Relatório de Saúde Financeira ({mesFormatadoCapitalized})</h2>
               <p className="text-xs text-gray-400">Visão consolidada do orçamento e percentual de gasto</p>
             </div>
 
@@ -719,7 +761,52 @@ export default function App() {
 
       </main>
 
-      {/* MODAL ADICIONAR RENDA / TÓPICO */}
+      {/* MODAL OPERAÇÃO CAIXINHA (GUARDAR / RETIRAR) */}
+      {modalOperacaoCaixinha && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">
+                {modalOperacaoCaixinha.tipo === 'guardar' ? 'Guardar em' : 'Retirar de'}: {modalOperacaoCaixinha.item.titulo}
+              </h3>
+              <button onClick={() => setModalOperacaoCaixinha(null)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={executarOperacaoCaixinha} className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Valor (R$)</label>
+                <input 
+                  type="number" 
+                  placeholder="0.00"
+                  value={valorOperacaoCaixinha}
+                  onChange={(e) => setValorOperacaoCaixinha(e.target.value)}
+                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                />
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setModalOperacaoCaixinha(null)}
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className={`w-1/2 font-semibold text-xs py-3 rounded-xl ${
+                    modalOperacaoCaixinha.tipo === 'guardar' ? 'bg-emerald-500 hover:bg-emerald-600 text-black' : 'bg-rose-500 hover:bg-rose-600 text-white'
+                  }`}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ADICIONAR RENDA */}
       {modalRendaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
@@ -793,7 +880,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL EDITAR VALOR DA RENDA */}
+      {/* MODAL EDITAR RENDA */}
       {modalEditarRenda && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
@@ -902,16 +989,6 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-gray-400 block mb-1">Mês de Início (1ª Parcela)</label>
-                <input 
-                  type="month" 
-                  value={novaParcela.mesInicio}
-                  onChange={(e) => setNovaParcela({ ...novaParcela, mesInicio: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
-                />
-              </div>
-
               <div className="flex space-x-3 pt-2">
                 <button 
                   type="button" 
@@ -978,7 +1055,7 @@ export default function App() {
         </div>
       )}
 
-      {/* BARRA DE NAVEGAÇÃO INFERIOR CENTRADA E COM MARGEM DE SEGURANÇA PARA MOBILE */}
+      {/* BARRA DE NAVEGAÇÃO INFERIOR */}
       <div className="fixed bottom-0 left-0 right-0 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-center pointer-events-none z-40">
         <nav className="pointer-events-auto bg-[#1e2025]/95 backdrop-blur-md border border-gray-800/80 rounded-2xl p-1.5 flex justify-between items-center w-full max-w-md shadow-2xl">
           <button 
