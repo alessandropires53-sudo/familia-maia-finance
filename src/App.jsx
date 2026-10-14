@@ -9,7 +9,7 @@ import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export default function App() {
-  // --- AUTENTICAÇÃO PRINCIPAL (TECLADO TÁTIL 8 DÍGITOS) ---
+  // --- AUTENTICAÇÃO PRINCIPAL (TECLADO TÁTIL iOS 6 DÍGITOS) ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [senhaDigitada, setSenhaDigitada] = useState('');
   const [erroLogin, setErroLogin] = useState('');
@@ -62,10 +62,10 @@ export default function App() {
   ]);
 
   const [caixinhas, setCaixinhas] = useState([
-    { id: 1, titulo: 'Reserva de Emergência', sub: 'CDB 100% CDI (Liquidez Diária)', acumulado: 0, meta: 1000, cor: '#0b8457', emoji: '🛡️' },
-    { id: 2, titulo: 'Festa de 1 Aninho', sub: 'Rendimento Fixo Diário', acumulado: 0, meta: 4000, cor: '#d946ef', emoji: '🎂' },
-    { id: 3, titulo: 'Casamento & Viagem', sub: 'Tesouro Selic (Pós-fixado)', acumulado: 0, meta: 45000, cor: '#f59e0b', emoji: '💍' },
-    { id: 4, titulo: 'Obra da Casa (Laje e Muro)', sub: 'IPCA+ (Proteção Inflação)', acumulado: 0, meta: 75000, cor: '#2563eb', emoji: '🏗️' },
+    { id: 1, titulo: 'Reserva de Emergência', sub: 'CDB 100% CDI (Liquidez Diária)', acumulado: 0, meta: 1000, cor: '#94a3b8', emoji: '🛡️' },
+    { id: 2, titulo: 'Festa de 1 Aninho', sub: 'Rendimento Fixo Diário', acumulado: 0, meta: 4000, cor: '#cbd5e1', emoji: '🎂' },
+    { id: 3, titulo: 'Casamento & Viagem', sub: 'Tesouro Selic (Pós-fixado)', acumulado: 0, meta: 45000, cor: '#e2e8f0', emoji: '💍' },
+    { id: 4, titulo: 'Obra da Casa (Laje e Muro)', sub: 'IPCA+ (Proteção Inflação)', acumulado: 0, meta: 75000, cor: '#64748b', emoji: '🏗️' },
   ]);
 
   // --- FORMULÁRIOS DE NOVOS ITENS ---
@@ -73,7 +73,7 @@ export default function App() {
   const [novaParcela, setNovaParcela] = useState({ titulo: '', valor: '', vencimento: '10', parcelaatual: 1, totalparcelas: 1, tag: 'Geral', mesInicio: mesFormatadoIso });
   const [novaFixa, setNovaFixa] = useState({ titulo: '', valor: '', tag: 'Serviços' });
   const [novaRenda, setNovaRenda] = useState({ titulo: '', descricao: '', valor: '', categoria: 'garantida' });
-  const [novaCaixinha, setNovaCaixinha] = useState({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#2563eb', emoji: '🎯' });
+  const [novaCaixinha, setNovaCaixinha] = useState({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#e2e8f0', emoji: '🎯' });
 
   // --- SINCRONIZAÇÃO EM TEMPO REAL FIREBASE ---
   const isRemoteUpdate = useRef(false);
@@ -123,15 +123,16 @@ export default function App() {
     setDataAtual(novaData);
   };
 
-  // --- LOGIN COM TECLADO TÁTIL DE 8 DÍGITOS ---
+  // --- LOGIN COM TECLADO TÁTIL ESTILO iOS (6 DÍGITOS) ---
   const handleDigitarNumero = (num) => {
-    if (senhaDigitada.length < 8) {
+    if (senhaDigitada.length < 6) {
       const novaSenha = senhaDigitada + num;
       setSenhaDigitada(novaSenha);
       setErroLogin('');
 
-      if (novaSenha.length === 8) {
-        if (novaSenha === '23510360') {
+      if (novaSenha.length === 6) {
+        // Valida senha de 6 dígitos
+        if (novaSenha === '231510' || novaSenha === '235103') {
           setIsAuthenticated(true);
           setSenhaDigitada('');
           setErroLogin('');
@@ -191,10 +192,10 @@ export default function App() {
   const totalFixasBruto = fixas.reduce((acc, f) => acc + Number(f.valor), 0);
 
   const parcelasPagar = parcelasAtivasNoMes.filter(p => !p.pago).reduce((acc, p) => acc + Number(p.valor), 0);
-  const totalParcelasBruto = parcelasAtivasNoMes.reduce((acc, p) => acc + Number(p.valor), 0);
+  const totalParcelasBruto = totalFixasBruto + parcelasAtivasNoMes.reduce((acc, p) => acc + Number(p.valor), 0);
 
   const despesasAbertasTotal = fixasPagar + parcelasPagar;
-  const despesasBrutasTotal = totalFixasBruto + totalParcelasBruto;
+  const despesasBrutasTotal = totalFixasBruto + parcelasAtivasNoMes.reduce((acc, p) => acc + Number(p.valor), 0);
   const saldoProjetado = rendaTotal - despesasAbertasTotal;
   const pctComprometido = rendaTotal > 0 ? ((despesasBrutasTotal / rendaTotal) * 100).toFixed(1) : 0;
 
@@ -238,7 +239,7 @@ export default function App() {
     };
     setCaixinhas([...caixinhas, item]);
     setModalCaixinhaAberta(false);
-    setNovaCaixinha({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#2563eb', emoji: '🎯' });
+    setNovaCaixinha({ titulo: '', sub: '', meta: '', acumulado: '0', cor: '#e2e8f0', emoji: '🎯' });
   };
 
   const salvarEdicaoRenda = (e) => {
@@ -306,78 +307,76 @@ export default function App() {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  // --- TELA DE LOGIN ULTRA PREMIUM COM TECLADO NUMÉRICO ---
+  // --- TELA DE LOGIN ULTRA PREMIUM ESTILO iOS ---
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#121316] text-white flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-[#1a1c23] border border-gray-800/80 rounded-3xl p-6 shadow-2xl text-center relative overflow-hidden backdrop-blur-md">
-          {/* Brilho sutil de fundo */}
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-gray-700/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div className="w-14 h-14 bg-[#232630] rounded-2xl flex items-center justify-center mx-auto mb-3 border border-gray-700/50 shadow-inner">
+      <div className="min-h-screen bg-[#111215] text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-xs bg-[#1a1c22] border border-gray-800/80 rounded-[32px] p-6 shadow-2xl text-center relative overflow-hidden backdrop-blur-xl">
+          
+          <div className="w-14 h-14 bg-[#242731] rounded-2xl flex items-center justify-center mx-auto mb-3 border border-gray-700/40 shadow-inner">
             <Wallet className="w-7 h-7 text-gray-200" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight mb-0.5">Família Maia Finance</h1>
-          <p className="text-gray-400 text-[11px] mb-5">Gestão Financeira Privada do Casal</p>
+          <h1 className="text-xl font-black tracking-tight mb-0.5">Família Maia Finance</h1>
+          <p className="text-gray-400 text-[11px] mb-6 font-medium">Gestão Financeira Privada</p>
 
-          <div className="bg-[#121316] border border-gray-800/80 rounded-2xl p-3.5 mb-5 flex items-center space-x-3 text-left">
-            <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white shadow">
+          <div className="bg-[#111215] border border-gray-800/80 rounded-2xl p-3 mb-6 flex items-center space-x-3 text-left">
+            <div className="w-9 h-9 rounded-full bg-gray-200 text-black font-black flex items-center justify-center text-xs shadow">
               AG
             </div>
             <div>
               <h3 className="font-bold text-xs text-white">Alessandro e Giovanna</h3>
-              <p className="text-[10px] text-gray-400">Perfil Unificado</p>
+              <p className="text-[10px] text-gray-400">Perfil Privado</p>
             </div>
           </div>
 
-          {/* INDICADORES DE SENHA (8 DÍGITOS) */}
-          <div className="mb-4">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Digite a Senha Privada</span>
-            <div className="flex justify-center space-x-2">
-              {[...Array(8)].map((_, i) => (
+          {/* INDICADORES DE SENHA (6 DÍGITOS ESTILO IPHONE) */}
+          <div className="mb-6">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">Digite o PIN (6 dígitos)</span>
+            <div className="flex justify-center space-x-3">
+              {[...Array(6)].map((_, i) => (
                 <div 
                   key={i} 
                   className={`w-3.5 h-3.5 rounded-full border transition-all duration-200 ${
                     i < senhaDigitada.length 
-                      ? 'bg-emerald-400 border-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' 
-                      : 'bg-[#121316] border-gray-700'
+                      ? 'bg-white border-white shadow-[0_0_10px_rgba(255,255,255,0.8)]' 
+                      : 'bg-[#111215] border-gray-700'
                   }`}
                 ></div>
               ))}
             </div>
-            {erroLogin && <p className="text-rose-400 text-xs mt-2 font-medium animate-shake">{erroLogin}</p>}
+            {erroLogin && <p className="text-rose-400 text-xs mt-3 font-medium">{erroLogin}</p>}
           </div>
 
-          {/* TECLADO NUMÉRICO TÁTIL */}
-          <div className="grid grid-cols-3 gap-2 px-2 mb-2">
+          {/* TECLADO NUMÉRICO CIRCULAR ESTILO IPHONE */}
+          <div className="grid grid-cols-3 gap-3 px-1 mb-2 justify-items-center">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
               <button
                 key={num}
                 type="button"
                 onClick={() => handleDigitarNumero(String(num))}
-                className="h-12 bg-[#232630] hover:bg-[#2c303e] active:scale-95 border border-gray-800/60 rounded-2xl text-lg font-bold text-white transition shadow-sm flex items-center justify-center"
+                className="w-14 h-14 bg-[#242731] hover:bg-[#2e323f] active:scale-95 rounded-full text-xl font-bold text-white transition flex items-center justify-center border border-gray-800/80 shadow"
               >
                 {num}
               </button>
             ))}
-            <div className="flex items-center justify-center"></div>
+            <div className="w-14 h-14"></div>
             <button
               type="button"
               onClick={() => handleDigitarNumero('0')}
-              className="h-12 bg-[#232630] hover:bg-[#2c303e] active:scale-95 border border-gray-800/60 rounded-2xl text-lg font-bold text-white transition shadow-sm flex items-center justify-center"
+              className="w-14 h-14 bg-[#242731] hover:bg-[#2e323f] active:scale-95 rounded-full text-xl font-bold text-white transition flex items-center justify-center border border-gray-800/80 shadow"
             >
               0
             </button>
             <button
               type="button"
               onClick={handleApagarNumero}
-              className="h-12 bg-[#232630]/60 hover:bg-rose-500/20 active:scale-95 border border-gray-800/60 rounded-2xl flex items-center justify-center text-gray-300 hover:text-rose-400 transition shadow-sm"
+              className="w-14 h-14 bg-[#242731]/50 hover:bg-rose-500/20 active:scale-95 rounded-full flex items-center justify-center text-gray-300 hover:text-rose-400 transition"
             >
               <Delete className="w-5 h-5" />
             </button>
           </div>
 
-          <p className="text-[10px] text-gray-600 mt-4">Sistema Seguro Família Maia</p>
+          <p className="text-[10px] text-gray-600 mt-4 font-mono">Família Maia • PWA</p>
         </div>
       </div>
     );
@@ -385,18 +384,18 @@ export default function App() {
 
   // --- TELA PRINCIPAL (DASHBOARD) ---
   return (
-    <div className="min-h-screen bg-[#121316] text-white pb-32 font-sans">
+    <div className="min-h-screen bg-[#111215] text-white pb-32 font-sans">
       
       {/* HEADER SUPERIOR */}
       <header className="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between border-b border-gray-800/50 mb-6 print:hidden">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#1e2025] rounded-xl flex items-center justify-center border border-gray-800">
+          <div className="w-10 h-10 bg-[#1a1c22] rounded-2xl flex items-center justify-center border border-gray-800">
             <Wallet className="w-5 h-5 text-gray-200" />
           </div>
           <div>
             <h1 className="font-bold text-base sm:text-lg leading-tight tracking-tight">Família Maia Finance</h1>
             <div className="flex items-center space-x-1 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span>
+              <span className="w-2 h-2 rounded-full bg-gray-300 mr-1"></span>
               <button onClick={() => mudarMes(-1)} className="text-gray-400 hover:text-white p-0.5 transition">
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -411,17 +410,17 @@ export default function App() {
         <div className="flex items-center space-x-2">
           <button 
             onClick={() => setOcultarValores(!ocultarValores)}
-            className="p-2.5 bg-[#1e2025] border border-gray-800 rounded-xl hover:bg-gray-800 text-gray-300 transition"
+            className="p-2.5 bg-[#1a1c22] border border-gray-800 rounded-2xl hover:bg-gray-800 text-gray-300 transition"
           >
             {ocultarValores ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
-          <div className="hidden sm:flex items-center space-x-2 bg-[#1e2025] border border-gray-800 px-3 py-1.5 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-emerald-600 text-xs font-bold flex items-center justify-center">AG</div>
+          <div className="hidden sm:flex items-center space-x-2 bg-[#1a1c22] border border-gray-800 px-3 py-1.5 rounded-2xl">
+            <div className="w-6 h-6 rounded-full bg-gray-200 text-black text-xs font-bold flex items-center justify-center">AG</div>
             <span className="text-xs font-medium text-gray-200">Alessandro e Giovanna</span>
           </div>
           <button 
             onClick={() => setIsAuthenticated(false)}
-            className="p-2.5 bg-[#1e2025] border border-gray-800 rounded-xl hover:bg-red-500/10 hover:text-red-400 text-gray-400 transition"
+            className="p-2.5 bg-[#1a1c22] border border-gray-800 rounded-2xl hover:bg-red-500/10 hover:text-red-400 text-gray-400 transition"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -435,44 +434,44 @@ export default function App() {
         {abaAtiva === 'renda' && (
           <div className="space-y-6 print:hidden">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-5 flex items-center justify-between shadow-md">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1">RENDA TOTAL</p>
-                  <p className="text-2xl font-black text-emerald-400">{formatarMoeda(rendaTotal)}</p>
+                  <p className="text-2xl font-black text-white">{formatarMoeda(rendaTotal)}</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-gray-800/80 flex items-center justify-center text-emerald-400 border border-gray-700">
+                <div className="w-10 h-10 rounded-2xl bg-gray-800 flex items-center justify-center text-gray-200 border border-gray-700">
                   <ArrowUpRight className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-5 flex items-center justify-between shadow-md">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1">DESPESAS + PARCELAS</p>
-                  <p className="text-2xl font-black text-rose-500">{formatarMoeda(despesasAbertasTotal)}</p>
+                  <p className="text-2xl font-black text-rose-400">{formatarMoeda(despesasAbertasTotal)}</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-gray-800/80 flex items-center justify-center text-rose-500 border border-gray-700">
+                <div className="w-10 h-10 rounded-2xl bg-gray-800 flex items-center justify-center text-rose-400 border border-gray-700">
                   <CreditCard className="w-5 h-5" />
                 </div>
               </div>
 
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 flex items-center justify-between">
+              <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-5 flex items-center justify-between shadow-md">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase mb-1">SALDO PROJETADO</p>
-                  <p className="text-2xl font-black text-white">{formatarMoeda(saldoProjetado)}</p>
+                  <p className="text-2xl font-black text-gray-200">{formatarMoeda(saldoProjetado)}</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-300 border border-gray-700">
+                <div className="w-10 h-10 rounded-2xl bg-gray-800 flex items-center justify-center text-gray-300 border border-gray-700">
                   <Wallet className="w-5 h-5" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5">
+            <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-5 shadow-md">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-semibold text-gray-300">Resumo Orçamentário Visual</span>
                 <span className="text-xs font-bold text-gray-400">{pctComprometido}% Comprometido</span>
               </div>
               <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden flex">
-                <div style={{ width: `${Math.min(pctComprometido, 100)}%` }} className="bg-emerald-500 h-full"></div>
+                <div style={{ width: `${Math.min(pctComprometido, 100)}%` }} className="bg-gray-300 h-full"></div>
               </div>
               <div className="flex justify-between text-[11px] text-gray-400 mt-2">
                 <span>Fixas: {formatarMoeda(fixasPagar)}</span>
@@ -480,7 +479,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-6 space-y-6 shadow-md">
               <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                 <div>
                   <h2 className="text-base sm:text-lg font-bold text-white leading-none">Rendas & Entradas da Família</h2>
@@ -488,7 +487,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={() => setModalRendaAberta(true)}
-                  className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow transition"
+                  className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-2xl text-xs flex items-center space-x-1 shadow transition"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Novo Tópico</span>
@@ -498,19 +497,19 @@ export default function App() {
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">1. RENDA FICHA GARANTIDA</h3>
-                  <span className="text-xs font-semibold px-2.5 py-1 bg-gray-800 text-emerald-400 rounded-lg border border-gray-700">
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-gray-800 text-gray-200 rounded-xl border border-gray-700">
                     Subtotal: {formatarMoeda(totalRendaGarantida)}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {rendas.filter(r => r.categoria === 'garantida').map(r => (
-                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                    <div key={r.id} className="bg-[#111215] border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
                       <div>
                         <p className="text-xs text-gray-400">{r.titulo}</p>
                         <p className="font-bold text-sm text-white">{r.descricao}</p>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <span className="font-bold text-emerald-400 text-sm">{formatarMoeda(r.valor)}</span>
+                        <span className="font-bold text-gray-200 text-sm">{formatarMoeda(r.valor)}</span>
                         <button onClick={() => setModalEditarRenda(r)} className="text-gray-500 hover:text-white p-1">
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -525,20 +524,20 @@ export default function App() {
 
               <div className="space-y-3 pt-2">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-blue-400">+ 2. RENDAS EXTRAS / VARIÁVEIS</h3>
-                  <span className="text-xs font-semibold px-2.5 py-1 bg-gray-800 text-blue-400 rounded-lg border border-gray-700">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">+ 2. RENDAS EXTRAS / VARIÁVEIS</h3>
+                  <span className="text-xs font-semibold px-2.5 py-1 bg-gray-800 text-gray-300 rounded-xl border border-gray-700">
                     Subtotal: {formatarMoeda(totalRendaExtra)}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {rendas.filter(r => r.categoria === 'extra').map(r => (
-                    <div key={r.id} className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                    <div key={r.id} className="bg-[#111215] border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
                       <div>
                         <p className="font-bold text-sm text-white">{r.titulo}</p>
                         <p className="text-xs text-gray-500">{r.descricao}</p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-bold text-blue-400 text-sm">{formatarMoeda(r.valor)}</span>
+                        <span className="font-bold text-gray-300 text-sm">{formatarMoeda(r.valor)}</span>
                         <button onClick={() => setModalEditarRenda(r)} className="text-gray-500 hover:text-white p-1">
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -556,7 +555,7 @@ export default function App() {
 
         {/* --- ABA 2: FIXAS --- */}
         {abaAtiva === 'fixas' && (
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden shadow-md">
             <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white leading-none">Despesas Fixas Intocáveis</h2>
@@ -564,7 +563,7 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setModalFixaAberta(true)}
-                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow transition"
+                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-2xl text-xs flex items-center space-x-1 shadow transition"
               >
                 <Plus className="w-4 h-4" />
                 <span>Adicionar</span>
@@ -575,13 +574,13 @@ export default function App() {
               {fixas.map(item => (
                 <div 
                   key={item.id} 
-                  className={`bg-[#121316] border rounded-xl p-4 flex items-center justify-between transition ${
-                    item.pago ? 'border-emerald-500/30 opacity-60' : 'border-gray-800'
+                  className={`bg-[#111215] border rounded-2xl p-4 flex items-center justify-between transition ${
+                    item.pago ? 'border-gray-800 opacity-50' : 'border-gray-800'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <button onClick={() => toggleFixaPago(item.id)} className="text-gray-400 hover:text-emerald-400">
-                      {item.pago ? <CheckSquare className="w-5 h-5 text-emerald-400" /> : <Square className="w-5 h-5" />}
+                    <button onClick={() => toggleFixaPago(item.id)} className="text-gray-400 hover:text-white">
+                      {item.pago ? <CheckSquare className="w-5 h-5 text-gray-200" /> : <Square className="w-5 h-5" />}
                     </button>
                     <div>
                       <p className={`font-semibold text-sm ${item.pago ? 'line-through text-gray-500' : 'text-white'}`}>
@@ -614,7 +613,7 @@ export default function App() {
 
         {/* --- ABA 3: DÍVIDAS / PARCELAS --- */}
         {abaAtiva === 'dividas' && (
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden shadow-md">
             <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white leading-none">Parcelas Ativas em {mesFormatadoCapitalized}</h2>
@@ -622,7 +621,7 @@ export default function App() {
               </div>
               <button 
                 onClick={() => setModalParcelaAberta(true)}
-                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1 shadow transition"
+                className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-2xl text-xs flex items-center space-x-1 shadow transition"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nova Parcela</span>
@@ -636,13 +635,13 @@ export default function App() {
                 parcelasAtivasNoMes.map(p => (
                   <div 
                     key={p.id} 
-                    className={`bg-[#121316] border rounded-xl p-4 flex items-center justify-between transition ${
-                      p.pago ? 'border-emerald-500/30 opacity-60' : 'border-gray-800'
+                    className={`bg-[#111215] border rounded-2xl p-4 flex items-center justify-between transition ${
+                      p.pago ? 'border-gray-800 opacity-50' : 'border-gray-800'
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      <button onClick={() => toggleParcelaPago(p.id)} className="text-gray-400 hover:text-emerald-400">
-                        {p.pago ? <CheckSquare className="w-5 h-5 text-emerald-400" /> : <Square className="w-5 h-5" />}
+                      <button onClick={() => toggleParcelaPago(p.id)} className="text-gray-400 hover:text-white">
+                        {p.pago ? <CheckSquare className="w-5 h-5 text-gray-200" /> : <Square className="w-5 h-5" />}
                       </button>
                       <div>
                         <div className="flex items-center space-x-2">
@@ -683,13 +682,13 @@ export default function App() {
         {abaAtiva === 'caixinhas' && (
           <div className="print:hidden">
             {!caixinhaDesbloqueada ? (
-              <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-8 max-w-md mx-auto text-center space-y-6">
+              <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-8 max-w-md mx-auto text-center space-y-6 shadow-2xl">
                 <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto border border-gray-700">
-                  <Lock className="w-8 h-8 text-emerald-400" />
+                  <Lock className="w-8 h-8 text-gray-200" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">Cofre de Investimentos Família Maia</h2>
-                  <p className="text-xs text-gray-400 mt-1">Digite o PIN privado de 4 dígitos para gerenciar seus investimentos</p>
+                  <h2 className="text-xl font-bold">Cofre de Investimentos</h2>
+                  <p className="text-xs text-gray-400 mt-1">Digite o PIN privado de 4 dígitos para gerenciar o cofre</p>
                 </div>
 
                 <form onSubmit={handleAcessarCaixinha} className="space-y-4">
@@ -699,24 +698,24 @@ export default function App() {
                     placeholder="PIN..."
                     value={pinCaixinha}
                     onChange={(e) => setPinCaixinha(e.target.value)}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl px-4 py-3 text-center text-xl font-bold tracking-widest text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl px-4 py-3 text-center text-xl font-bold tracking-widest text-white focus:outline-none focus:border-gray-500"
                   />
                   {erroPin && <p className="text-rose-400 text-xs">{erroPin}</p>}
-                  <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-xl transition shadow">
+                  <button type="submit" className="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-2xl transition shadow">
                     Confirmar Acesso Privado
                   </button>
                 </form>
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6 shadow-xl">
-                  {/* HEADER DO COFRE COM BOTÃO NOVA CAIXINHA + CADEADINHO DE BLOQUEIO */}
+                <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 space-y-6 shadow-xl">
+                  {/* HEADER DO COFRE */}
                   <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                     <div>
                       <div className="flex items-center space-x-2">
                         <h2 className="text-lg font-bold text-white">Cofre & Investimentos</h2>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30 flex items-center space-x-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span className="text-[10px] bg-gray-800 text-gray-300 px-2.5 py-0.5 rounded-full font-bold border border-gray-700 flex items-center space-x-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                           <span>Rendimento Ativo</span>
                         </span>
                       </div>
@@ -726,17 +725,16 @@ export default function App() {
                     <div className="flex items-center space-x-2">
                       <button 
                         onClick={() => setModalCaixinhaAberta(true)}
-                        className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-lg shadow-emerald-500/20 transition"
+                        className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-2xl text-xs flex items-center space-x-1.5 shadow transition"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Nova Caixinha</span>
                       </button>
 
-                      {/* CADEADINHO PARA BLOQUEAR NOVAMENTE */}
                       <button 
                         onClick={() => { setCaixinhaDesbloqueada(false); setPinCaixinha(''); }}
                         title="Bloquear Cofre"
-                        className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 rounded-xl transition"
+                        className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700 rounded-2xl transition"
                       >
                         <Lock className="w-4 h-4" />
                       </button>
@@ -745,34 +743,34 @@ export default function App() {
 
                   {/* CARDS RESUMO SUPERIOR */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-[#121316] border border-gray-800/80 rounded-xl p-4 flex items-center justify-between">
+                    <div className="bg-[#111215] border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">TOTAL ACUMULADO</p>
-                        <p className="text-xl font-black text-emerald-400 mt-0.5">{formatarMoeda(totalAcumuladoCaixinhas)}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">TOTAL ACUMULADO</p>
+                        <p className="text-xl font-black text-white mt-0.5">{formatarMoeda(totalAcumuladoCaixinhas)}</p>
                       </div>
-                      <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-200">
                         <Shield className="w-5 h-5" />
                       </div>
                     </div>
 
-                    <div className="bg-[#121316] border border-gray-800/80 rounded-xl p-4 flex items-center justify-between">
+                    <div className="bg-[#111215] border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">FALTANTE PARA META GLOBAL</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">FALTANTE META GLOBAL</p>
                         <p className="text-xl font-black text-amber-400 mt-0.5">{formatarMoeda(metaGlobalCaixinhas - totalAcumuladoCaixinhas)}</p>
                       </div>
-                      <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-amber-400">
                         <Target className="w-5 h-5" />
                       </div>
                     </div>
 
-                    <div className="bg-[#121316] border border-gray-800/80 rounded-xl p-4 flex items-center justify-between">
+                    <div className="bg-[#111215] border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">CONCLUSÃO GLOBAL</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">CONCLUSÃO GLOBAL</p>
                         <p className="text-xl font-black text-white mt-0.5">
                           {metaGlobalCaixinhas > 0 ? ((totalAcumuladoCaixinhas / metaGlobalCaixinhas) * 100).toFixed(0) : 0}%
                         </p>
                       </div>
-                      <div className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300">
+                      <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300">
                         <Percent className="w-5 h-5" />
                       </div>
                     </div>
@@ -780,20 +778,20 @@ export default function App() {
 
                   <div className="space-y-3 pt-2">
                     <div className="flex justify-between items-center text-xs text-gray-300 font-bold tracking-wider uppercase">
-                      <span>ALOCAÇÃO E PROGRESSO DAS METAS DO COFRE</span>
+                      <span>ALOCAÇÃO DAS METAS DO COFRE</span>
                       <span className="text-gray-400 text-[11px] font-normal">Meta Global: {formatarMoeda(metaGlobalCaixinhas)}</span>
                     </div>
 
                     <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden p-0.5">
                       <div 
                         style={{ width: `${metaGlobalCaixinhas > 0 ? (totalAcumuladoCaixinhas / metaGlobalCaixinhas) * 100 : 0}%` }} 
-                        className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                        className="bg-white h-full rounded-full transition-all duration-500"
                       ></div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       {caixinhas.map(c => (
-                        <div key={c.id} className="bg-[#121316] border border-gray-800 px-3 py-1.5 rounded-lg flex items-center space-x-2 text-[11px] font-medium text-gray-300">
+                        <div key={c.id} className="bg-[#111215] border border-gray-800 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-[11px] font-medium text-gray-300">
                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.cor }}></span>
                           <span>{c.titulo}</span>
                         </div>
@@ -807,10 +805,10 @@ export default function App() {
                   {caixinhas.map(c => {
                     const pct = c.meta > 0 ? Math.min(((c.acumulado / c.meta) * 100), 100).toFixed(0) : 0;
                     return (
-                      <div key={c.id} className="bg-[#1e2025] border border-gray-800 rounded-2xl p-5 space-y-4 shadow-lg relative overflow-hidden">
+                      <div key={c.id} className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-5 space-y-4 shadow-lg relative overflow-hidden">
                         <div className="flex items-start justify-between relative z-10">
                           <div className="flex items-center space-x-3.5">
-                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-lg border border-white/10" style={{ backgroundColor: c.cor }}>
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow border border-white/10" style={{ backgroundColor: '#242731' }}>
                               {c.emoji}
                             </div>
                             <div>
@@ -818,7 +816,7 @@ export default function App() {
                               <p className="text-xs text-gray-400">{c.sub}</p>
                             </div>
                           </div>
-                          <span className="text-xs font-bold text-gray-300 bg-gray-800/80 border border-gray-700 px-2.5 py-1 rounded-xl">
+                          <span className="text-xs font-bold text-gray-300 bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-xl">
                             {pct}%
                           </span>
                         </div>
@@ -830,25 +828,25 @@ export default function App() {
                           </div>
 
                           <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                            <div style={{ width: `${pct}%`, backgroundColor: c.cor }} className="h-full rounded-full transition-all duration-500"></div>
+                            <div style={{ width: `${pct}%` }} className="h-full bg-white rounded-full transition-all duration-500"></div>
                           </div>
 
                           <p className="text-[10px] text-gray-400 text-right">
-                            Faltam <strong className="text-amber-400">{formatarMoeda(c.meta - c.acumulado)}</strong> para atingir a meta
+                            Faltam <strong className="text-amber-400">{formatarMoeda(c.meta - c.acumulado)}</strong>
                           </p>
                         </div>
 
                         <div className="flex space-x-2 pt-1 relative z-10">
                           <button 
                             onClick={() => setModalOperacaoCaixinha({ item: c, tipo: 'guardar' })}
-                            className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1 shadow transition"
+                            className="flex-1 bg-white hover:bg-gray-200 text-black font-bold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1 shadow transition"
                           >
                             <PlusCircle className="w-4 h-4" />
                             <span>+ Guardar</span>
                           </button>
                           <button 
                             onClick={() => setModalOperacaoCaixinha({ item: c, tipo: 'retirar' })}
-                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1 border border-gray-700 transition"
+                            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold py-2.5 rounded-2xl text-xs flex items-center justify-center space-x-1 border border-gray-700 transition"
                           >
                             <MinusCircle className="w-4 h-4" />
                             <span>Retirar</span>
@@ -867,7 +865,7 @@ export default function App() {
         {abaAtiva === 'relatorio' && (
           <div className="space-y-6">
             
-            <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden">
+            <div className="bg-[#1a1c22] border border-gray-800 rounded-2xl p-6 space-y-6 print:hidden shadow-md">
               <div className="flex justify-between items-center border-b border-gray-800/80 pb-4">
                 <div>
                   <h2 className="text-base sm:text-lg font-bold text-white leading-none">Relatório de Saúde Financeira ({mesFormatadoCapitalized})</h2>
@@ -875,7 +873,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={GERAR_PDF_FORMAL}
-                  className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow transition"
+                  className="bg-white hover:bg-gray-200 text-black font-bold px-4 py-2 rounded-2xl text-xs flex items-center space-x-1.5 shadow transition"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Gerar PDF Formal</span>
@@ -884,7 +882,7 @@ export default function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div className="flex justify-center py-4">
-                  <div className="relative w-48 h-48 rounded-full border-8 border-gray-800 flex items-center justify-center border-t-emerald-500 border-r-emerald-500 shadow-2xl">
+                  <div className="relative w-48 h-48 rounded-full border-8 border-gray-800 flex items-center justify-center border-t-white border-r-white shadow-2xl">
                     <div className="text-center">
                       <span className="text-3xl font-black text-white">{pctComprometido}%</span>
                       <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mt-0.5">Comprometido</p>
@@ -893,17 +891,17 @@ export default function App() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                  <div className="bg-[#111215] border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-300">Renda Bruta Total</span>
-                    <span className="font-bold text-emerald-400">{formatarMoeda(rendaTotal)}</span>
+                    <span className="font-bold text-white">{formatarMoeda(rendaTotal)}</span>
                   </div>
-                  <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                  <div className="bg-[#111215] border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-300">Comprometimento Mensal</span>
-                    <span className="font-bold text-rose-500">{formatarMoeda(despesasAbertasTotal)}</span>
+                    <span className="font-bold text-rose-400">{formatarMoeda(despesasAbertasTotal)}</span>
                   </div>
-                  <div className="bg-[#121316] border border-gray-800 rounded-xl p-4 flex justify-between items-center">
+                  <div className="bg-[#111215] border border-gray-800 rounded-2xl p-4 flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-300">Sobra para Reserva</span>
-                    <span className="font-bold text-white">{formatarMoeda(saldoProjetado)}</span>
+                    <span className="font-bold text-gray-200">{formatarMoeda(saldoProjetado)}</span>
                   </div>
                 </div>
               </div>
@@ -928,7 +926,7 @@ export default function App() {
                   <tbody>
                     <tr className="border-b border-gray-200">
                       <td className="py-2 font-medium">Renda Bruta Total</td>
-                      <td className="py-2 text-right font-bold text-emerald-700">{formatarMoeda(rendaTotal)}</td>
+                      <td className="py-2 text-right font-bold text-black">{formatarMoeda(rendaTotal)}</td>
                     </tr>
                     <tr className="border-b border-gray-200">
                       <td className="py-2 font-medium">Total de Despesas Fixas (A Pagar)</td>
@@ -975,7 +973,7 @@ export default function App() {
       {/* MODAL CRIAR NOVA CAIXINHA */}
       {modalCaixinhaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">Criar Nova Caixinha / Cofre</h3>
               <button onClick={() => setModalCaixinhaAberta(false)} className="text-gray-400 hover:text-white">
@@ -990,7 +988,7 @@ export default function App() {
                   placeholder="Ex: Viagem de Fim de Ano, Trocar de Carro..."
                   value={novaCaixinha.titulo}
                   onChange={(e) => setNovaCaixinha({ ...novaCaixinha, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
 
@@ -1001,7 +999,7 @@ export default function App() {
                   placeholder="Ex: CDB 100% CDI, Tesouro Selic..."
                   value={novaCaixinha.sub}
                   onChange={(e) => setNovaCaixinha({ ...novaCaixinha, sub: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
 
@@ -1013,7 +1011,7 @@ export default function App() {
                     placeholder="5000"
                     value={novaCaixinha.meta}
                     onChange={(e) => setNovaCaixinha({ ...novaCaixinha, meta: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
                 <div>
@@ -1022,7 +1020,7 @@ export default function App() {
                     type="text" 
                     value={novaCaixinha.emoji}
                     onChange={(e) => setNovaCaixinha({ ...novaCaixinha, emoji: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-center"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500 text-center"
                   />
                 </div>
               </div>
@@ -1031,13 +1029,13 @@ export default function App() {
                 <button 
                   type="button" 
                   onClick={() => setModalCaixinhaAberta(false)}
-                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-2xl font-semibold text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  className="w-1/2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-xl text-xs shadow"
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-2xl text-xs shadow"
                 >
                   Criar Caixinha
                 </button>
@@ -1050,7 +1048,7 @@ export default function App() {
       {/* MODAL OPERAÇÃO CAIXINHA (GUARDAR / RETIRAR) */}
       {modalOperacaoCaixinha && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">
                 {modalOperacaoCaixinha.tipo === 'guardar' ? 'Guardar em' : 'Retirar de'}: {modalOperacaoCaixinha.item.titulo}
@@ -1067,21 +1065,21 @@ export default function App() {
                   placeholder="0.00"
                   value={valorOperacaoCaixinha}
                   onChange={(e) => setValorOperacaoCaixinha(e.target.value)}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500 text-white"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
                 <button 
                   type="button" 
                   onClick={() => setModalOperacaoCaixinha(null)}
-                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-2xl font-semibold text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  className={`w-1/2 font-bold text-xs py-3 rounded-xl ${
-                    modalOperacaoCaixinha.tipo === 'guardar' ? 'bg-emerald-500 hover:bg-emerald-400 text-black' : 'bg-rose-500 hover:bg-rose-400 text-white'
+                  className={`w-1/2 font-bold text-xs py-3 rounded-2xl ${
+                    modalOperacaoCaixinha.tipo === 'guardar' ? 'bg-white hover:bg-gray-200 text-black' : 'bg-rose-500 hover:bg-rose-400 text-white'
                   }`}
                 >
                   Confirmar
@@ -1095,7 +1093,7 @@ export default function App() {
       {/* MODAL ADICIONAR RENDA */}
       {modalRendaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">Adicionar Novo Tópico de Renda</h3>
               <button onClick={() => setModalRendaAberta(false)} className="text-gray-400 hover:text-white">
@@ -1110,7 +1108,7 @@ export default function App() {
                   placeholder="Ex: Alessandro, Giovanna, Extra..."
                   value={novaRenda.titulo}
                   onChange={(e) => setNovaRenda({ ...novaRenda, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div>
@@ -1120,7 +1118,7 @@ export default function App() {
                   placeholder="Ex: Salário Fixo, Vendas, Motoboy..."
                   value={novaRenda.descricao}
                   onChange={(e) => setNovaRenda({ ...novaRenda, descricao: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1131,7 +1129,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaRenda.valor}
                     onChange={(e) => setNovaRenda({ ...novaRenda, valor: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
                 <div>
@@ -1139,7 +1137,7 @@ export default function App() {
                   <select 
                     value={novaRenda.categoria}
                     onChange={(e) => setNovaRenda({ ...novaRenda, categoria: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500 text-white"
                   >
                     <option value="garantida">1. Ficha Garantida</option>
                     <option value="extra">2. Renda Extra</option>
@@ -1150,13 +1148,13 @@ export default function App() {
                 <button 
                   type="button" 
                   onClick={() => setModalRendaAberta(false)}
-                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-2xl font-semibold text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-2xl font-semibold text-xs"
                 >
                   Adicionar Tópico
                 </button>
@@ -1169,7 +1167,7 @@ export default function App() {
       {/* MODAL EDITAR RENDA */}
       {modalEditarRenda && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold">Editar Renda: {modalEditarRenda.titulo}</h3>
               <button onClick={() => setModalEditarRenda(null)} className="text-gray-400 hover:text-white">
@@ -1183,7 +1181,7 @@ export default function App() {
                   type="text" 
                   value={modalEditarRenda.titulo}
                   onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div>
@@ -1192,20 +1190,20 @@ export default function App() {
                   type="number" 
                   value={modalEditarRenda.valor}
                   onChange={(e) => setModalEditarRenda({ ...modalEditarRenda, valor: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
                 <button 
                   type="button" 
                   onClick={() => setModalEditarRenda(null)}
-                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-2xl font-semibold text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-2xl font-semibold text-xs"
                 >
                   Salvar
                 </button>
@@ -1218,7 +1216,7 @@ export default function App() {
       {/* MODAL ADICIONAR PARCELA */}
       {modalParcelaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold">Adicionar Nova Parcela</h3>
             <form onSubmit={adicionarParcela} className="space-y-3">
               <div>
@@ -1228,7 +1226,7 @@ export default function App() {
                   placeholder="Ex: Tênis, Empréstimo..."
                   value={novaParcela.titulo}
                   onChange={(e) => setNovaParcela({ ...novaParcela, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
 
@@ -1240,7 +1238,7 @@ export default function App() {
                     placeholder="0.00"
                     value={novaParcela.valor}
                     onChange={(e) => setNovaParcela({ ...novaParcela, valor: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
                 <div>
@@ -1249,7 +1247,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.vencimento}
                     onChange={(e) => setNovaParcela({ ...novaParcela, vencimento: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
               </div>
@@ -1261,7 +1259,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.parcelaatual}
                     onChange={(e) => setNovaParcela({ ...novaParcela, parcelaatual: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
                 <div>
@@ -1270,7 +1268,7 @@ export default function App() {
                     type="number" 
                     value={novaParcela.totalparcelas}
                     onChange={(e) => setNovaParcela({ ...novaParcela, totalparcelas: e.target.value })}
-                    className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
               </div>
@@ -1281,7 +1279,7 @@ export default function App() {
                   type="month" 
                   value={novaParcela.mesInicio}
                   onChange={(e) => setNovaParcela({ ...novaParcela, mesInicio: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 text-white"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500 text-white"
                 />
               </div>
 
@@ -1289,13 +1287,13 @@ export default function App() {
                 <button 
                   type="button" 
                   onClick={() => setModalParcelaAberta(false)}
-                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-2xl font-semibold text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-2xl font-semibold text-xs"
                 >
                   Adicionar
                 </button>
@@ -1308,7 +1306,7 @@ export default function App() {
       {/* MODAL ADICIONAR FIXA */}
       {modalFixaAberta && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1e2025] border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+          <div className="bg-[#1a1c22] border border-gray-800 rounded-3xl p-6 w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold">Adicionar Despesa Fixa</h3>
             <form onSubmit={adicionarFixa} className="space-y-3">
               <div>
@@ -1318,7 +1316,7 @@ export default function App() {
                   placeholder="Ex: Internet, Luz..."
                   value={novaFixa.titulo}
                   onChange={(e) => setNovaFixa({ ...novaFixa, titulo: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div>
@@ -1328,20 +1326,20 @@ export default function App() {
                   placeholder="0.00"
                   value={novaFixa.valor}
                   onChange={(e) => setNovaFixa({ ...novaFixa, valor: e.target.value })}
-                  className="w-full bg-[#121316] border border-gray-800 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#111215] border border-gray-800 rounded-2xl p-3 text-sm focus:outline-none focus:border-gray-500"
                 />
               </div>
               <div className="flex space-x-3 pt-2">
                 <button 
                   type="button" 
                   onClick={() => setModalFixaAberta(false)}
-                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-2xl font-semibold text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit" 
-                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-xl font-semibold text-xs"
+                  className="w-1/2 bg-white hover:bg-gray-200 text-black py-3 rounded-2xl font-semibold text-xs"
                 >
                   Adicionar
                 </button>
@@ -1353,11 +1351,11 @@ export default function App() {
 
       {/* BARRA DE NAVEGAÇÃO INFERIOR */}
       <div className="fixed bottom-0 left-0 right-0 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-center pointer-events-none z-40 print:hidden">
-        <nav className="pointer-events-auto bg-[#1e2025]/95 backdrop-blur-md border border-gray-800/80 rounded-2xl p-1.5 flex justify-between items-center w-full max-w-md shadow-2xl">
+        <nav className="pointer-events-auto bg-[#1a1c22]/95 backdrop-blur-md border border-gray-800/80 rounded-3xl p-1.5 flex justify-between items-center w-full max-w-md shadow-2xl">
           <button 
             onClick={() => setAbaAtiva('renda')}
-            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'renda' ? 'bg-[#2b2d35] text-white font-bold' : 'text-gray-400 hover:text-white'
+            className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-2xl transition ${
+              abaAtiva === 'renda' ? 'bg-[#282a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Wallet className="w-4 h-4 mb-1" />
@@ -1366,8 +1364,8 @@ export default function App() {
 
           <button 
             onClick={() => setAbaAtiva('fixas')}
-            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'fixas' ? 'bg-[#2b2d35] text-white font-bold' : 'text-gray-400 hover:text-white'
+            className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-2xl transition ${
+              abaAtiva === 'fixas' ? 'bg-[#282a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Calendar className="w-4 h-4 mb-1" />
@@ -1376,8 +1374,8 @@ export default function App() {
 
           <button 
             onClick={() => setAbaAtiva('dividas')}
-            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'dividas' ? 'bg-[#2b2d35] text-white font-bold' : 'text-gray-400 hover:text-white'
+            className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-2xl transition ${
+              abaAtiva === 'dividas' ? 'bg-[#282a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <CreditCard className="w-4 h-4 mb-1" />
@@ -1386,8 +1384,8 @@ export default function App() {
 
           <button 
             onClick={() => setAbaAtiva('caixinhas')}
-            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'caixinhas' ? 'bg-[#2b2d35] text-white font-bold' : 'text-gray-400 hover:text-white'
+            className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-2xl transition ${
+              abaAtiva === 'caixinhas' ? 'bg-[#282a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <Shield className="w-4 h-4 mb-1" />
@@ -1396,8 +1394,8 @@ export default function App() {
 
           <button 
             onClick={() => setAbaAtiva('relatorio')}
-            className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl transition ${
-              abaAtiva === 'relatorio' ? 'bg-[#2b2d35] text-white font-bold' : 'text-gray-400 hover:text-white'
+            className={`flex-1 flex flex-col items-center py-2.5 px-1 rounded-2xl transition ${
+              abaAtiva === 'relatorio' ? 'bg-[#282a33] text-white font-bold' : 'text-gray-400 hover:text-white'
             }`}
           >
             <PieChart className="w-4 h-4 mb-1" />
