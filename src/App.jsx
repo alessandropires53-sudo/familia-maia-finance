@@ -9,8 +9,10 @@ import { db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export default function App() {
-  // --- AUTENTICAÇÃO PRINCIPAL (TECLADO TÁTIL iOS 6 DÍGITOS: 235103) ---
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // --- AUTENTICAÇÃO PRINCIPAL COM PERSISTÊNCIA DE SESSÃO ---
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('familia_maia_auth') === 'true';
+  });
   const [senhaDigitada, setSenhaDigitada] = useState('');
   const [erroLogin, setErroLogin] = useState('');
 
@@ -116,7 +118,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // --- NOTIFICAÇÕES DO CELULAR ---
+  // --- NOTIFICAÇÕES SEGURAS PARA ANDROID PWA ---
   useEffect(() => {
     if ('Notification' in window) {
       setPermissaoNotificacao(Notification.permission);
@@ -128,14 +130,59 @@ export default function App() {
       Notification.requestPermission().then(permission => {
         setPermissaoNotificacao(permission);
         if (permission === 'granted') {
-          new Notification("Família Maia Finance", {
-            body: "Notificações ativadas! Você receberá alertas de vencimento de contas.",
-            icon: "/pwa-192x192.png"
-          });
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification("Família Maia Finance", {
+                  body: "Notificações ativadas! Você receberá alertas de vencimento de contas.",
+                  icon: "/pwa-192x192.png"
+                });
+              });
+            }
+          } catch (e) {
+            console.log("Notificação nativa indisponível", e);
+          }
         }
       });
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        const hoje = new Date();
+        const mesAtualReal = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+        const diaHoje = hoje.getDate();
+
+        const pendentesAvisar = [
+          ...fixas.map(f => ({ ...f, tipo: 'Fixa', pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesAtualReal) })),
+          ...parcelas.map(p => ({ ...p, tipo: 'Parcela', pagoNoMes: Array.isArray(p.pagamentos) && p.pagamentos.includes(mesAtualReal) }))
+        ].filter(item => {
+          if (item.pagoNoMes) return false;
+          const diff = Number(item.vencimento) - diaHoje;
+          return diff >= 0 && diff <= 2;
+        });
+
+        if (pendentesAvisar.length > 0) {
+          pendentesAvisar.forEach(item => {
+            const diff = Number(item.vencimento) - diaHoje;
+            const msg = diff === 0 ? `A conta ${item.titulo} vence HOJE!` : `A conta ${item.titulo} vence em ${diff} dia(s).`;
+            
+            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+              navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification("Alerta de Vencimento • Família Maia", {
+                  body: msg,
+                  icon: "/pwa-192x192.png"
+                });
+              }).catch(() => {});
+            }
+          });
+        }
+      } catch (err) {
+        console.log("Erro seguro ao verificar notificações:", err);
+      }
+    }
+  }, [isAuthenticated]);
 
   // --- CONTROLE DE MÊS ---
   const mesFormatado = dataAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
@@ -158,6 +205,7 @@ export default function App() {
       if (novaSenha.length === 6) {
         if (novaSenha === '235103') {
           setIsAuthenticated(true);
+          sessionStorage.setItem('familia_maia_auth', 'true');
           setSenhaDigitada('');
           setErroLogin('');
         } else {
@@ -171,6 +219,11 @@ export default function App() {
   const handleApagarNumero = () => {
     setSenhaDigitada(prev => prev.slice(0, -1));
     setErroLogin('');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('familia_maia_auth');
   };
 
   const handleAcessarCaixinha = (e) => {
@@ -239,35 +292,6 @@ export default function App() {
     }
     return null;
   };
-
-  // --- VERIFICADOR E ENVIO DE NOTIFICAÇÕES PUSH ---
-  useEffect(() => {
-    if (isAuthenticated && 'Notification' in window && Notification.permission === 'granted') {
-      const hoje = new Date();
-      const mesAtualReal = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-      const diaHoje = hoje.getDate();
-
-      const pendentesAvisar = [
-        ...fixas.map(f => ({ ...f, tipo: 'Fixa', pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesAtualReal) })),
-        ...parcelas.map(p => ({ ...p, tipo: 'Parcela', pagoNoMes: Array.isArray(p.pagamentos) && p.pagamentos.includes(mesAtualReal) }))
-      ].filter(item => {
-        if (item.pagoNoMes) return false;
-        const diff = Number(item.vencimento) - diaHoje;
-        return diff >= 0 && diff <= 2;
-      });
-
-      if (pendentesAvisar.length > 0) {
-        pendentesAvisar.forEach(item => {
-          const diff = Number(item.vencimento) - diaHoje;
-          const msg = diff === 0 ? `A conta ${item.titulo} vence HOJE!` : `A conta ${item.titulo} vence em ${diff} dia(s).`;
-          new Notification("Alerta de Vencimento • Família Maia", {
-            body: msg,
-            icon: "/pwa-192x192.png"
-          });
-        });
-      }
-    }
-  }, [isAuthenticated]);
 
   // --- CÁLCULOS DINÂMICOS ---
   const totalRendaGarantida = rendas.filter(r => r.categoria === 'garantida').reduce((acc, r) => acc + Number(r.valor), 0);
@@ -597,7 +621,7 @@ export default function App() {
             <span className="text-xs font-medium text-gray-200">Alessandro e Giovanna</span>
           </div>
           <button 
-            onClick={() => setIsAuthenticated(false)}
+            onClick={handleLogout}
             className="p-2.5 bg-[#171821] border border-gray-800 rounded-2xl hover:bg-red-500/10 hover:text-red-400 text-gray-400 transition"
           >
             <LogOut className="w-4 h-4" />
