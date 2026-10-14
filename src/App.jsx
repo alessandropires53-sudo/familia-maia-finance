@@ -16,14 +16,14 @@ export default function App() {
   const [senhaDigitada, setSenhaDigitada] = useState('');
   const [erroLogin, setErroLogin] = useState('');
 
-  // --- NAVEGAÇÃO DE MESES (INICIALIZA AUTOMATICAMENTE NO MÊS ATUAL DO CELULAR) ---
+  // --- NAVEGAÇÃO DE MESES ---
   const [dataAtual, setDataAtual] = useState(() => {
     const hoje = new Date();
     return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   });
 
   // --- NAVEGAÇÃO DE ABAS & UI ---
-  const [abaAtiva, setAbaAtiva] = useState('renda'); // renda, fixas, dividas, caixinhas, relatorio
+  const [abaAtiva, setAbaAtiva] = useState('renda');
   const [ocultarValores, setOcultarValores] = useState(false);
 
   // --- CAIXINHA PROTEGIDA ---
@@ -158,7 +158,6 @@ export default function App() {
         const dataHojeIso = `${anoHoje}-${String(mesHojeIndex + 1).padStart(2, '0')}-${String(diaHoje).padStart(2, '0')}`;
         const mesChaveHoje = `${anoHoje}-${String(mesHojeIndex + 1).padStart(2, '0')}`;
 
-        // Unir contas fixas e parcelas pendentes
         const itensPendentes = [
           ...fixas.map(f => ({ ...f, tipo: 'Fixa', pagoNoMes: Array.isArray(f.pagamentos) && f.pagamentos.includes(mesChaveHoje) })),
           ...parcelas.map(p => ({ ...p, tipo: 'Parcela', pagoNoMes: Array.isArray(p.pagamentos) && p.pagamentos.includes(mesChaveHoje) }))
@@ -172,7 +171,6 @@ export default function App() {
 
           const diffDias = diaVenc - diaHoje;
 
-          // Notifica apenas se estiver na janela de 0 a 2 dias de antecedência (vence em 2 dias, 1 dia, ou HOJE)
           if (diffDias >= 0 && diffDias <= 2) {
             const chaveNotificacaoKey = `notif_${item.tipo}_${item.id}_${dataHojeIso}`;
             const jaNotificouHoje = localStorage.getItem(chaveNotificacaoKey);
@@ -218,7 +216,7 @@ export default function App() {
     setDataAtual(novaData);
   };
 
-  // --- LOGIN COM TECLADO TÁTIL ESTILO iOS (6 DÍGITOS: 235103) ---
+  // --- LOGIN COM TECLADO TÁTIL ---
   const handleDigitarNumero = (num) => {
     if (senhaDigitada.length < 6) {
       const novaSenha = senhaDigitada + num;
@@ -259,7 +257,7 @@ export default function App() {
     }
   };
 
-  // --- FILTRO INTELIGENTE DE PARCELAS POR MÊS SELECIONADO ---
+  // --- FILTRO INTELIGENTE DE PARCELAS POR MÊS SELECIONADO (CORRIGIDO) ---
   const obterParcelasDoMes = () => {
     const anoAtual = dataAtual.getFullYear();
     const mesAtualIndex = dataAtual.getMonth();
@@ -269,11 +267,14 @@ export default function App() {
       const [anoStart, mesStart] = p.mesInicio.split('-').map(Number);
       const diffMeses = (anoAtual - anoStart) * 12 + (mesAtualIndex - (mesStart - 1));
 
-      if (diffMeses < 0 || diffMeses >= p.totalparcelas) {
+      const numParcelaNoMes = Number(p.parcelaatual) + diffMeses;
+      const total = Number(p.totalparcelas);
+
+      // CORREÇÃO CRUCIAL: Se a parcela for menor que 1 ou ultrapassar o total de parcelas, ela SUMI do mês!
+      if (diffMeses < 0 || numParcelaNoMes > total) {
         return null;
       }
 
-      const numParcelaNoMes = p.parcelaatual + diffMeses;
       const estaPagoNoMes = Array.isArray(p.pagamentos) && p.pagamentos.includes(mesChaveAtual);
 
       return {
@@ -524,7 +525,7 @@ export default function App() {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  // --- TELA DE LOGIN ULTRA PREMIUM COM DEGRADÊ ROXO/ROSA NEON ---
+  // --- TELA DE LOGIN ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#0f1015] text-white flex items-center justify-center p-4">
@@ -599,7 +600,7 @@ export default function App() {
     );
   }
 
-  // --- TELA PRINCIPAL (DASHBOARD) ---
+  // --- TELA PRINCIPAL ---
   return (
     <div className="min-h-screen bg-[#0f1015] text-white pb-32 font-sans">
       
@@ -654,7 +655,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* CONTEÚDO PRINCIPAL DAS ABAS */}
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="max-w-4xl mx-auto px-4 space-y-6">
 
         {/* --- ABA 1: RENDA --- */}
@@ -902,7 +903,7 @@ export default function App() {
                             </span>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Parcela: {p.parcelaExibida || p.parcelaatual}/{p.totalparcelas} • Vencimento: Dia {p.vencimento}
+                            Parcela: {p.parcelaExibida}/{p.totalparcelas} • Vencimento: Dia {p.vencimento}
                           </p>
                         </div>
                       </div>
